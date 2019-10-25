@@ -8,7 +8,7 @@ int GiveCommonInterfaceVersion()
 
 
 const char* GivePlayerName()
-{
+{ 
 	return "The LAW";
 }
 
