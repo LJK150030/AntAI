@@ -21,6 +21,7 @@ public:
 	
 	// Helpers
 	void MoveRandom( AgentID agent );
+	void MoveGreedy( AgentID agent );
 	void AddOrder( AgentID agent, eOrderCode order ); 
 
 public:
@@ -29,6 +30,7 @@ public:
 
 	std::map<AgentID, std::pair<short, short>> m_agentLastKnownLocation;
 	AgentID m_queenID;
+	int m_currentNumWorkers = 0;
 
 	
 	std::mutex m_turnLock; 

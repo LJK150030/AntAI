@@ -18,4 +18,4 @@ extern MatchInfo				g_matchInfo;
 extern DebugInterface*			g_debugInterface;
 extern ArenaTurnStateForPlayer	g_turnState;
 
-extern int g_workerBirthFrequency;
+constexpr int MIN_NUM_WORKERS = 5;

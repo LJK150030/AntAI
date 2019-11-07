@@ -108,6 +108,11 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 		}
 		else
 		{
+			if(report.type == AGENT_TYPE_WORKER)
+			{
+				--m_currentNumWorkers;
+			}
+			
 			m_agentLastKnownLocation.erase(report.agentID);
 			continue;
 		}
@@ -117,7 +122,7 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 			// agent is alive and ready to get an order, so do something
 			switch (report.type) 
 			{
-				// scout will drunkely walk
+				// scout will randomly walk
 				case AGENT_TYPE_SCOUT:
 				{
 //					MoveRandom( report.agentID );
@@ -127,6 +132,11 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 				// moves randomly, but if they fall on food, will pick it up if hands are free
 				case AGENT_TYPE_WORKER:
 				{
+					if(report.result == AGENT_WAS_CREATED)
+					{
+						++m_currentNumWorkers;
+					}
+
 					if (report.state == STATE_HOLDING_FOOD) 
 					{
 						short queen_x = m_agentLastKnownLocation[m_queenID].first;
@@ -138,8 +148,14 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 						}
 						else
 						{
-							eOrderCode direction = Geographer::GreedyMovement(report.tileX, report.tileY, queen_x, queen_y);
-							AddOrder( report.agentID, direction ); 
+							if(report.result == AGENT_ORDER_ERROR_MOVE_BLOCKED_BY_TILE)
+							{
+								MoveRandom( report.agentID );
+							}
+							else
+							{
+								MoveGreedy( report.agentID );
+							}
 						}
 					}
 					else 
@@ -170,10 +186,9 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 				{
 					m_queenID = report.agentID;
 
-					const int turn_remainder = m_lastTurnProcessed % g_workerBirthFrequency;
-					if(turn_remainder == 0)
+					if(m_currentNumWorkers < MIN_NUM_WORKERS)
 					{
-						AddOrder( report.agentID, ORDER_BIRTH_WORKER ); 
+						AddOrder( report.agentID, ORDER_BIRTH_WORKER );
 					}
 // 					const float random_spawn_chance = 0.9f; 
 // 					if (g_randomNumberGenerator.GetRandomFloatZeroToOne() < random_spawn_chance)
@@ -201,6 +216,20 @@ void MainThread::MoveRandom( AgentID agent )
 {
 	const int offset = rand() % 4;
 	const eOrderCode order = static_cast<eOrderCode>(ORDER_MOVE_EAST + offset); 
+
+	AddOrder( agent, order ); 
+}
+
+void MainThread::MoveGreedy( AgentID agent )
+{
+	short agent_x = m_agentLastKnownLocation[agent].first;
+	short agent_y = m_agentLastKnownLocation[agent].second;
+	short queen_x = m_agentLastKnownLocation[m_queenID].first;
+	short queen_y = m_agentLastKnownLocation[m_queenID].second;
+	
+	const eOrderCode order = Geographer::GreedyMovement(agent_x, 
+		agent_y, queen_x, queen_y);
+
 
 	AddOrder( agent, order ); 
 }

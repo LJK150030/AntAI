@@ -10,4 +10,3 @@ MatchInfo					g_matchInfo;
 DebugInterface*				g_debugInterface = nullptr;
 ArenaTurnStateForPlayer		g_turnState;
 
-int	g_workerBirthFrequency = 50;
