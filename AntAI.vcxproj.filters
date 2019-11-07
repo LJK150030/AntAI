@@ -8,15 +8,66 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="code">
+      <UniqueIdentifier>{63cba3c1-aad0-4e58-9a2b-19646ca7c1d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Math">
+      <UniqueIdentifier>{1db28253-185b-473c-9155-7d856bdf1232}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="code\ArenaInterface\ArenaPlayerInterface.hpp">
+    <ClInclude Include="code\Arena\ArenaPlayerInterface.hpp">
       <Filter>Arena</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Geographer.hpp">
+      <Filter>code</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Blackboard.hpp">
+      <Filter>code</Filter>
+    </ClInclude>
+    <ClInclude Include="code\MainThread.hpp">
+      <Filter>code</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Math\RandomNumberGenerator.hpp">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Math\IntVec2.hpp">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Math\MathUtils.hpp">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Math\Vec2.hpp">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Math\RawNoise.hpp">
+      <Filter>Math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="code\dll\PlayerImpl.cpp">
       <Filter>dll</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Geographer.cpp">
+      <Filter>code</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Blackboard.cpp">
+      <Filter>code</Filter>
+    </ClCompile>
+    <ClCompile Include="code\MainThread.cpp">
+      <Filter>code</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Math\RandomNumberGenerator.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Math\IntVec2.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Math\MathUtils.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Math\Vec2.cpp">
+      <Filter>Math</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

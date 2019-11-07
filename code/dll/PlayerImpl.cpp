@@ -1,54 +1,50 @@
 #include "Arena\ArenaPlayerInterface.hpp"
+#include "Blackboard.hpp"
 
 // info collection
-int GiveCommonInterfaceVersion()
-{
-	return COMMON_INTERFACE_VERSION_NUMBER;
-}
+int GiveCommonInterfaceVersion() {	return COMMON_INTERFACE_VERSION_NUMBER; }
+const char* GivePlayerName() {	return "jak_sin(Pi)"; }
+const char* GiveAuthorName() {	return "Lawrence(JAKE)"; }
 
 
-const char* GivePlayerName()
-{ 
-	return "The LAW";
-}
-
-
-const char* GiveAuthorName()
-{
-	return "Lawrence(JAKE)";
-}
-
-
-// setup
+// setup -- copy game rules over
 void PreGameStartup( const StartupInfo& info )
 {
-	//copy game rules over
+	g_thePlayer = new MainThread(); 
+	g_thePlayer->Startup( info ); 
 }
 
 
+// any clean up or reporting
 void PostGameShutdown( const MatchResults& results )
 {
-	// any clean up or reporting
+	g_thePlayer->Shutdown( results ); 
+	delete g_thePlayer; 
 }
 
 
+// a thread entry -- do work here
+// we are given a thread index, however, this is more so the threads entry point
+// get the threads, and add them to a pool
 void PlayerThreadEntry( int yourThreadIdx )
 {
-	// a thread entry - do work here
+	// this Ai is "bad" - I'm only going to use one worker thread
+	if (yourThreadIdx == 0) 
+	{
+		g_thePlayer->ThreadEntry( yourThreadIdx ); 
+	}
 }
 
 
-
-// Turn
+// Turn -- copy stat, kick off work
 void ReceiveTurnState( const ArenaTurnStateForPlayer& state )
 {
-	// copy stat, kick off work
+	g_thePlayer->ReceiveTurnState( state ); 
 }
 
 
+// return if orders was filled (this is a valid turn)
 bool TurnOrderRequest( int turnNumber, PlayerTurnOrders* ordersToFill )
 {
-	// return if orders was filled (this is a valid turn)
-	ordersToFill->numberOfOrders = 0;
-	return true;
+	return g_thePlayer->TurnOrderRequest( ordersToFill ); 
 }

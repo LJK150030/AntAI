@@ -7,12 +7,20 @@
 #pragma once
 
 //-----------------------------------------------------------------------------------------------
-// Versioning
-// 2: priority split to combatPriority and sacrificePriority
-// 3: assorted changes made due to logic going in - mostly error codes 
-// 4: add nutrients lost due to faults to the report
+// Revision History
+// 1: DLL Interface created
+// 2: Separated combatPriority and sacrificePriority
+// 3: Assorted changes made due to logic going in - mostly error codes 
+// 4: Added nutrients lost due to faults to the report
+// 5: Removed sand and gravel tile types (as well as STATE_HOLDING_SAND, etc.)
+// 6: Queen suffocation penalty added
+// 7: Sudden death nutrient upkeep added
+// 8: New agent order for failed move due to queens sharing tile
+// 9: Added a RequestPauseAfterTurn() to the debug interface; 
+// 10: changed eOrderCode storage type to unsigned char (was default-int)
+// 11: Removed some redudnant order result codes, and added nutrient loss information to given stats; 
 //-----------------------------------------------------------------------------------------------
-constexpr int	COMMON_INTERFACE_VERSION_NUMBER		= 4;
+constexpr int	COMMON_INTERFACE_VERSION_NUMBER		= 11;
 
 
 //-----------------------------------------------------------------------------------------------
@@ -29,7 +37,7 @@ constexpr int	COMMON_INTERFACE_VERSION_NUMBER		= 4;
 //-----------------------------------------------------------------------------------------------
 typedef unsigned char	TeamID;		// 200+
 typedef unsigned char	PlayerID;	// 100+
-typedef unsigned int	AgentID;	// 100000001+  equal to:  (1000000 * playerID) + someUniqueID
+typedef unsigned int	AgentID;	// unique per agent, highest byte is agent's owning playerID
 
 
 //-----------------------------------------------------------------------------------------------
@@ -83,7 +91,7 @@ enum eAgentType : unsigned char
 };
 
 //-----------------------------------------------------------------------------------------------
-enum eOrderCode
+enum eOrderCode : unsigned char
 {
 	ORDER_HOLD = 0,
 
@@ -136,7 +144,6 @@ enum eAgentOrderResult : unsigned char
 	AGENT_ORDER_SUCCESS_DUG,
 	AGENT_ORDER_SUCCESS_PICKUP,
 	AGENT_ORDER_SUCCESS_DROP,
-	AGENT_ORDER_SUCCESS_BIRTHED,	// is a new unit
 	AGENT_ORDER_SUCCESS_GAVE_BIRTH,	// unit spawned another unit
 	AGENT_ORDER_SUCCESS_SUICIDE,
 
@@ -147,11 +154,11 @@ enum eAgentOrderResult : unsigned char
 	AGENT_ORDER_ERROR_CANT_BIRTH,
 	AGENT_ORDER_ERROR_CANT_DIG_INVALID_TILE,
 	AGENT_ORDER_ERROR_CANT_DIG_WHILE_CARRYING,
-	AGENT_ORDER_ERROR_MOVE_BLOCKED,
+	AGENT_ORDER_ERROR_MOVE_BLOCKED_BY_TILE,
+	AGENT_ORDER_ERROR_MOVE_BLOCKED_BY_QUEEN,	// queens can't occupy tiles with other queens
 	AGENT_ORDER_ERROR_OUT_OF_BOUNDS,
 	AGENT_ORDER_ERROR_NO_FOOD_PRESENT,
 	AGENT_ORDER_ERROR_ALREADY_CARRYING_FOOD,
-	AGENT_ORDER_ERROR_SQUARE_NOT_EMPTY,
 	AGENT_ORDER_ERROR_NOT_CARRYING,
 	AGENT_ORDER_ERROR_INSUFFICIENT_FOOD,
 	AGENT_ORDER_ERROR_MAXIMUM_POPULATION_REACHED,
@@ -165,25 +172,23 @@ enum eAgentState : unsigned char
 	STATE_NORMAL = 0,
 	STATE_DEAD, 
 	STATE_HOLDING_FOOD, 
-	STATE_HOLDING_SAND, 
-	STATE_HOLDING_DIRT, 
-	STATE_HOLDING_GRAVEL, 
-//	STATE_GESTATING,  // we don't need this, since births are always immediate, just leaves queen exhausted
+	STATE_HOLDING_DIRT,
+
+	NUM_AGENT_STATES
 };
+
 
 //-----------------------------------------------------------------------------------------------
 enum eTileType : unsigned char 
 {
 	TILE_TYPE_AIR,				// open space, traversable by most/all agent types
 
-	TILE_TYPE_SAND,				// porous (light); may be dug or traversed by certain ant types
-	TILE_TYPE_DIRT,				// porous (medium); may be dug or traversed by certain ant types
-	TILE_TYPE_GRAVEL,			// porous (heavy); may be dug or traversed by certain ant types
+	TILE_TYPE_DIRT,				// semi-solid; may be dug or traversed by certain ant types
+	TILE_TYPE_STONE,			// impassable and indestructible
 
 	TILE_TYPE_WATER,			// lethal; turns to a corpse bridge when ant walks onto it, killing the ant
 	TILE_TYPE_CORPSE_BRIDGE,	// open space (like AIR), but can be dug to revert it back to water
 
-	TILE_TYPE_STONE,			// impassable and indestructible
 	NUM_TILE_TYPES,
 	TILE_TYPE_UNSEEN = 0xff		// not currently visible to any ant, e.g. obscured by fog of war
 };
@@ -230,9 +235,9 @@ struct VertexPC
 //-----------------------------------------------------------------------------------------------
 struct AgentTypeInfo // information about a given agent type (e.g. AGENT_TYPE_WORKER)
 {
+	const char*	name;			// proper-case name for this type, e.g. "Worker" or "Queen"
 	int		costToBirth;		// colony pays this many nutrients for a queen to birth one of these
 	int		exhaustAfterBirth;	// queen who birthed an agent of this type gains +exhaustion
-								//	int		exhaustOnCombat;	// Hey C4: who/what situation was this for again?
 	int		upkeepPerTurn;		// colony pays this many nutrients per turn per one of these alive
 	int		visibilityRange;	// sees tiles and agents up to this far away (taxicab distance)
 	int		combatStrength;		// survives a duel if enemy agent has a lower combatStrength
@@ -250,10 +255,10 @@ struct AgentTypeInfo // information about a given agent type (e.g. AGENT_TYPE_WO
 //-----------------------------------------------------------------------------------------------
 struct MatchInfo // information about the match about to be played
 {
-	int				numPlayers;		// number of players (with unique PlayerIDs) in this match
-	int				numTeams;		// <numPlayers> in brawl, 2 for 5v5, 1 for co-op survival
+	int numPlayers;		// number of players (with unique PlayerIDs) in this match
+	int numTeams;		// <numPlayers> in brawl, 2 for 5v5, 1 for co-op survival
 	
-	short			mapWidth;		// width & height of [always square] map; tileX,tileY < mapWidth
+	short mapWidth;		// width & height of [always square] map; tileX,tileY < mapWidth
 	
 	bool fogOfWar;				// if false, all tiles & agents are always visible
 	bool teamSharedVision;		// if true, teammates share combined visibility
@@ -261,7 +266,9 @@ struct MatchInfo // information about the match about to be played
 
 	int nutrientsEarnedPerFoodEatenByQueen;	// when a queen moves onto food, or food drops on her
 	int nutrientLossPerAttackerStrength;	// colony loses nutrients whenever queen is attacked
-	int numTurnsBeforeSuddenDeath;			// no new food will appear after this turn number
+	int nutrientLossForQueenSuffocation;	// when queen is suffocated - how much food damage she takes
+	int numTurnsBeforeSuddenDeath;			// no new food appears after this turn, and upkeep increases
+	int suddenDeathTurnsPerUpkeepIncrease;	// total upkeep increases by +1 every N turns after S.D.
 	int colonyMaxPopulation;				// cannot birth new agents if population is at max
 	int startingNutrients;					// each colony starts with this many nutrients
 
@@ -290,11 +297,14 @@ struct PlayerInfo // server-assigned information about your Player instance in t
 //
 struct AgentReport 
 {
-	int					agentID;		// your agent's unique ID #
+	AgentID				agentID;		// your agent's unique ID #
 
 	short				tileX;			// current tile coordinates in map; (0,0) is bottom-left
 	short				tileY;
 	short				exhaustion;		// number of turns inactive; non-HOLD orders fail if > 0
+
+	short				receivedCombatDamage; // amount of damage received this turn 
+	short				receivedSuffocationDamage; // suffocation damage received this turn (1 is you suffocated)
 
 	eAgentType			type;			// type of agent (permanent/unique per agent)
 	eAgentState			state;			// special status of agent (carrying something, etc.)
@@ -304,12 +314,15 @@ struct AgentReport
 // -----------------------------------------------------------------------------------------------
 struct ObservedAgent
 {
-	int			agentID;			// another Player's agent's unique ID #
+	AgentID		agentID;			// another Player's agent's unique ID #
 	PlayerID	playerID;			// Player who owns this agent
 	TeamID		teamID;				// Team the agent's Player is on
 
 	short		tileX;				// just observed at these tile coordinates; (0,0) is bottom-left
 	short		tileY;
+	
+	short		receivedCombatDamage; // 0 or 1 for most agents, nutrient damage for queen
+	short		receivedSuffocationDamage; // 0 or 1 for most agents, nutrient damage for queen
 
 	eAgentType	type;				// observed agent's type
 	eAgentState	state;				// special status of agent (carrying something, etc.)
@@ -322,7 +335,7 @@ struct ObservedAgent
 // Issuing more than one order for a given agent in the same turn is an illegal FAULT.
 struct AgentOrder
 {
-	int agentID;
+	AgentID agentID;
 	eOrderCode order; 
 };
 
@@ -374,6 +387,8 @@ struct ArenaTurnStateForPlayer
 	// fault reporting to clients
 	int numFaults; 
 	int nutrientsLostDueToFault;
+	int nutrientsLostDueToQueenDamage;
+	int nutrientsLostDueToQueenSuffocation;
 
 	// Status reports for each of your living agents (and/or for each order you submitted)
 	AgentReport agentReports[MAX_REPORTS_PER_PLAYER];
@@ -402,12 +417,13 @@ struct MatchResults
 // Call debugInterface->QueueXXX() functions to request asynchronous debug draws on the server;
 // Call debugInterface->FlushXXX() when finished; server will thereafter draw all queued items,
 //	and continue to do so until your next call to FlushXXX(), which clears the previous items.
-// !!! Items Queued for drawing will not appear until a Flush has been called afterwards.
+// !!! Items Queued for drawing will not appear until a Flush has been called afterwards. !!!
 //
 // Debug drawing is done in world space; each Tile is 1x1, and (x,y) is the center of tile X,Y.
 // For example, tile 7,3 extends from mins(6.5,2.5) to maxs(7.5,3.5), with center at (7.0,3.0).
 // All drawing is clipped to world space, i.e. mins(-.5,-.5) to maxs(mapWidth-.5,mapWidth-.5).
 //-----------------------------------------------------------------------------------------------
+typedef void (*RequestPauseFunc)(); 
 typedef void (*LogTextFunc)( char const* format, ... ); 
 typedef void (*DrawVertexArrayFunc)( int count, const VertexPC* vertices );
 typedef void (*DrawWorldTextFunc)( 
@@ -420,6 +436,7 @@ typedef void (*FlushQueuedDrawsFunc)();
 //------------------------------------------------------------------------------------------------
 struct DebugInterface
 {
+	RequestPauseFunc		RequestPause;			// Pause the simulation (can be ignored by game)
 	LogTextFunc				LogText;				// Print to dev console (and possibly log file)
 	
 	DrawWorldTextFunc		QueueDrawWorldText;		// Draw (aligned) overlay text in world space
@@ -430,30 +447,42 @@ struct DebugInterface
 
 //-----------------------------------------------------------------------------------------------
 // DLL-EXE Interface
+//
+// All of these functions are exported by the DLL so that the server can find them using
+//	LoadLibrary() and GetProcAddress() and call them.
+//
+// All functions should return immediately, except PlayerThreadEntry() which is called from
+//	within a private thread created by the server solely for this DLL to use to do asynchronous
+//	work.  PlayerThreadEntry() should loop infinitely, doing general AI work for your ant colony,
+//	until the server calls PostGameShutdown(), after which you should exit your loop and finally
+//	return from PlayerThreadEntry().  Note that PlayerThreadEntry() may (likely) be called 2+
+//	times, once for/in each thread created for this DLL player by the server.
 //-----------------------------------------------------------------------------------------------
 #if !defined(ARENA_SERVER)
+	// Functions exported by the DLL for the server (.EXE) to call
 	extern "C"
 	{
 		// info collection
-		DLL int GiveCommonInterfaceVersion(); 
-		DLL const char* GivePlayerName(); 
-		DLL const char* GiveAuthorName(); 
+		DLL int GiveCommonInterfaceVersion();	// DLL should return COMMON_INTERFACE_VERSION_NUMBER
+		DLL const char* GivePlayerName();		// DLL should return the name of the AI (can be whatever)
+		DLL const char* GiveAuthorName();		// DLL should return the actual human author's name
 
 		// setup
-		DLL void PreGameStartup( const StartupInfo& info ); 
-		DLL void PostGameShutdown( const MatchResults& results ); 
-		DLL void PlayerThreadEntry( int yourThreadIdx );
+		DLL void PreGameStartup( const StartupInfo& info );			// Server provides player/match info
+		DLL void PostGameShutdown( const MatchResults& results );	// Server signals match end; exit loops
+		DLL void PlayerThreadEntry( int yourThreadIdx );			// Called in its own private thread (yours!); infinitely loop, doing async AI work, until PostGame is called
 
 		// Turn
-		DLL void ReceiveTurnState( const ArenaTurnStateForPlayer& state );
-		DLL bool TurnOrderRequest( int turnNumber, PlayerTurnOrders* ordersToFill ); 
+		DLL void ReceiveTurnState( const ArenaTurnStateForPlayer& state );				// Server tells you what you see
+		DLL bool TurnOrderRequest( int turnNumber, PlayerTurnOrders* ordersToFill );	// You tell server what you do
 	}
-#else 
-	typedef int (*GiveCommandInterfaceVersionFunc)(); 
-	typedef const char* (*GivePlayerNameFunc)(); 
-	typedef const char* (*GiveAuthorNameFunc)(); 
-	typedef void (*PreGameStartupFunc)( const StartupInfo& info ); 
-	typedef void (*PostGameShutdownFunc)( const MatchResults& results ); 
+#else
+	// Function pointer types, used by server (only) find these exported DLL functions via GetProcAddress()
+	typedef int (*GiveCommandInterfaceVersionFunc)();
+	typedef const char* (*GivePlayerNameFunc)();
+	typedef const char* (*GiveAuthorNameFunc)();
+	typedef void (*PreGameStartupFunc)( const StartupInfo& info );
+	typedef void (*PostGameShutdownFunc)( const MatchResults& results );
 	typedef void (*PlayerThreadEntryFunc)( int yourThreadIdx );
 	typedef void (*ReceiveTurnStateFunc)( const ArenaTurnStateForPlayer& state );
 	typedef bool (*TurnOrderRequestFunc)( int turnNumber, PlayerTurnOrders* ordersToFill ); 
