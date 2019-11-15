@@ -11,12 +11,11 @@ struct IntVec2
 public:
 	// Construction/Destruction
 	~IntVec2() = default; // destructor: do nothing (for speed)
-	IntVec2(): x(0), y(0)
-	{
-	} // default constructor: do nothing (for speed)
+	IntVec2(): x(0), y(0) {} // default constructor: do nothing (for speed)
 	IntVec2(const IntVec2& copy); // copy constructor (from another vec2)
 	explicit IntVec2(const Vec2& copy); // copy constructor (from another vec2)
 	explicit IntVec2(int initial_x, int initial_y); // explicit constructor (from x, y)
+	explicit IntVec2(short initial_x, short initial_y); // explicit constructor (from x, y)
 
 	// Accessors
 	//int GetLength() const;

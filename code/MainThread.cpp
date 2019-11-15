@@ -221,7 +221,7 @@ void MainThread::UpdateWorker(AgentReport& report)
 	}
 	else 
 	{
-		if (Geographer::DoesCoordHaveFood(report.tileX, report.tileY)) 
+		if (Geographer::DoesCoordHaveFood(IntVec2(report.tileX, report.tileY))) 
 		{
 			AddOrder( report.agentID, ORDER_PICK_UP_FOOD ); 
 		} 

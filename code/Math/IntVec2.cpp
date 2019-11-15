@@ -19,6 +19,12 @@ IntVec2::IntVec2(const int initial_x, const int initial_y): x(initial_x), y(init
 {
 }
 
+IntVec2::IntVec2(const short initial_x, const short initial_y)
+{
+	x = static_cast<int>(initial_x);
+	y = static_cast<int>(initial_y);
+}
+
 //-----------------------------------------------------------------------------------------------
 int IntVec2::GetLengthSquared() const
 {

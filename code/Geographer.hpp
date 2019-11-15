@@ -14,8 +14,7 @@ public:
 	
 	//accessor
 	static Geographer GetInstance();
-	static void DebugPrintMap();
-	static bool DoesCoordHaveFood( short x, short y );
+	static bool DoesCoordHaveFood(const IntVec2& coord );
 
 	//mutators
 	static void SetMapDimensions( int width );
@@ -23,16 +22,19 @@ public:
 	static void UpdatePerception();
 
 	//helpers
-	static short GetTileIndex(short x, short y);
 	static short GetTileIndex(const IntVec2& coord);
-	static void GetTileCoord( short& x_out, short& y_out, uint tile_index );
-	static bool IsValidCoord( const IntVec2& coord );
-	static bool IsSafeTile( const IntVec2& coord );
-	static IntVec2 GetCoordFromCardDir( eOrderCode dir, const IntVec2& start_coord );
-	static IntVec2 GetReverseCoordFromCardDir( eOrderCode dir, const IntVec2& start_coord );
+	static short GetTileIndexFromCardDir( eOrderCode dir, short start_idx, bool reverse_dir = false );
+	static bool IsSafeTile( short tile_index );
 
+	static IntVec2 GetTileCoord( short tile_index );
+	static IntVec2 GetCoordFromCardDir( eOrderCode dir, const IntVec2& start_coord, bool reverse_dir = false );
+	static bool IsValidCoord( const IntVec2& coord );
+
+	
+	static std::vector<IntVec2> Neighbors( short coord );
+	static std::vector<IntVec2> Neighbors( const IntVec2& coord );
+	
 	//debugging
-	static void DebugPrintTerrainMap();
 	static void DebugPrintCostMap(const std::map<short, NodeRecord>& closed_list);
 	static void DebugPrintDirectionMap(const std::map<short, NodeRecord>& closed_list);
 	static void DebugPrintPath(const std::map<short, NodeRecord>& closed_list, const IntVec2& start, const IntVec2&  end);
@@ -47,8 +49,8 @@ private:
 
 private:
 	static Geographer*  s_instance;
-	static uint s_mapDimensions;
-	static uint s_mapTotalSize;
+	static int s_mapDimensions;
+	static int s_mapTotalSize;
 
 	//these are maps of all the tiles the ants can currently can see
 	static eTileType s_observedTerrainMap[MAX_ARENA_TILES];
@@ -63,20 +65,19 @@ private:
 //Structure to keep track of nodes
 struct NodeRecord
 {
-	IntVec2 coord = IntVec2(-1, -1);
+	short coord_idx = -1;
 	eOrderCode action_took = ORDER_HOLD;
 	int cost_so_far = -1;
-	//do not need a list of connections, we know we can always go cardinal directions
 
 	bool operator==(const NodeRecord& other_record) const
 	{
-		return Geographer::GetTileIndex(coord) == Geographer::GetTileIndex(other_record.coord);
+		return coord_idx == other_record.coord_idx;
 	}
 
 
 	bool operator!=(const NodeRecord& other_record) const
 	{
-		return Geographer::GetTileIndex(coord) != Geographer::GetTileIndex(other_record.coord);
+		return coord_idx != other_record.coord_idx;
 	}
 
 
