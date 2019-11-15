@@ -14,6 +14,12 @@
     <Filter Include="Math">
       <UniqueIdentifier>{1db28253-185b-473c-9155-7d856bdf1232}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Architecture">
+      <UniqueIdentifier>{5e757364-3e8a-48a4-ab06-3a710d2f3ce2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Async">
+      <UniqueIdentifier>{a525a56d-c628-4fe6-85ac-d49c8ea0e60a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="code\Arena\ArenaPlayerInterface.hpp">
@@ -43,6 +49,24 @@
     <ClInclude Include="code\Math\RawNoise.hpp">
       <Filter>Math</Filter>
     </ClInclude>
+    <ClInclude Include="code\Architecture\Heap.hpp">
+      <Filter>Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Async\AbstractRequest.hpp">
+      <Filter>Async</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Async\Dispatcher.hpp">
+      <Filter>Async</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Async\Worker.hpp">
+      <Filter>Async</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Async\Request.hpp">
+      <Filter>Async</Filter>
+    </ClInclude>
+    <ClInclude Include="code\GameRequest.hpp">
+      <Filter>code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="code\dll\PlayerImpl.cpp">
@@ -68,6 +92,21 @@
     </ClCompile>
     <ClCompile Include="code\Math\Vec2.cpp">
       <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Architecture\Heap.cpp">
+      <Filter>Architecture</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Async\Dispatcher.cpp">
+      <Filter>Async</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Async\Worker.cpp">
+      <Filter>Async</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Async\Request.cpp">
+      <Filter>Async</Filter>
+    </ClCompile>
+    <ClCompile Include="code\GameRequest.cpp">
+      <Filter>code</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

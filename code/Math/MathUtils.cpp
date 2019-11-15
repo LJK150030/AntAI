@@ -246,26 +246,6 @@ Vec2 TransformPosition(const Vec2& position, const float uniform_scale, const fl
 }
 
 //--------------------------------------------------------------------------------------------------
-void TransformLocalVectorToWorld()
-{
-	//TODO: TransformLocalVectorToWorld
-}
-
-void TransformLocalPositionToWorld()
-{
-	//TODO: TransformLocalPositionToWorld
-}
-
-void TransformWorldVectorToLocal()
-{
-	//TODO: TransformWorldVectorToLocal
-}
-
-void TransformWorldPositionToLocal()
-{
-	//TODO: TransformWorldPositionToLocal
-}
-
 Vec2 MaxVec2(const Vec2& a, const Vec2& b)
 {
 	const float max_x = (a.x > b.x) ? a.x : b.x;

@@ -10,7 +10,6 @@ void MainThread::Startup( const StartupInfo& info )
 	
 	// Optional Todo: Can register into the dev-console system
 	// of the server using info.RegisterEvent
-
 	
 	// setup the turn number
 	g_turnState.turnNumber = -1; 
@@ -24,6 +23,9 @@ void MainThread::Startup( const StartupInfo& info )
 
 void MainThread::Shutdown( const MatchResults& results )
 {
+	m_running = false;
+	m_turnCV.notify_all();
+	
 	Geographer::Shutdown();
 }
 
@@ -33,6 +35,7 @@ void MainThread::ThreadEntry( int /*threadIdx*/ )
 	// wait for data
 	// process turn
 	// mark turn as finished;
+	++m_numActiveThreads;
 	ArenaTurnStateForPlayer turn_state;
 	
 	while (m_running) 
@@ -55,6 +58,8 @@ void MainThread::ThreadEntry( int /*threadIdx*/ )
 			g_debugInterface->LogText( "AIPlayer Turn Complete: %i", turn_state.turnNumber ); 
 		}
 	}
+	--m_numActiveThreads;
+
 }
 
 
@@ -104,13 +109,32 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 
 		if(report.state != STATE_DEAD)
 		{
-			m_agentLastKnownLocation[report.agentID] = std::pair<short, short> (report.tileX, report.tileY);
+			m_agentLastKnownLocation[report.agentID] = IntVec2(report.tileX, report.tileY);
 		}
 		else
 		{
-			if(report.type == AGENT_TYPE_WORKER)
+			switch(report.type)
 			{
-				--m_currentNumWorkers;
+				case AGENT_TYPE_SCOUT:
+				{
+					--m_currentNumScouts;
+					break;
+				}
+				case AGENT_TYPE_WORKER:
+				{
+					--m_currentNumWorkers;
+					break;
+				}
+				case AGENT_TYPE_SOLDIER:
+				{
+					--m_currentNumSoldier;
+					break;
+				}
+				case AGENT_TYPE_QUEEN:
+				{
+					--m_currentNumQueen;
+					break;
+				}
 			}
 			
 			m_agentLastKnownLocation.erase(report.agentID);
@@ -120,63 +144,27 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 		if (report.exhaustion == 0) 
 		{
 			// agent is alive and ready to get an order, so do something
+			TODO("replace this with strategy pattern")
 			switch (report.type) 
 			{
 				// scout will randomly walk
 				case AGENT_TYPE_SCOUT:
 				{
-//					MoveRandom( report.agentID );
-					break; 
+					//UpdateScout(report);
+					break;
 				}
 
 				// moves randomly, but if they fall on food, will pick it up if hands are free
 				case AGENT_TYPE_WORKER:
 				{
-					if(report.result == AGENT_WAS_CREATED)
-					{
-						++m_currentNumWorkers;
-					}
-
-					if (report.state == STATE_HOLDING_FOOD) 
-					{
-						short queen_x = m_agentLastKnownLocation[m_queenID].first;
-						short queen_y = m_agentLastKnownLocation[m_queenID].second;
-						
-						if(report.tileX == queen_x && report.tileY == queen_y)
-						{
-							AddOrder( report.agentID, ORDER_DROP_CARRIED_OBJECT ); 
-						}
-						else
-						{
-							if(report.result == AGENT_ORDER_ERROR_MOVE_BLOCKED_BY_TILE)
-							{
-								MoveRandom( report.agentID );
-							}
-							else
-							{
-								MoveGreedy( report.agentID );
-							}
-						}
-					}
-					else 
-					{
-						if (Geographer::DoesCoordHaveFood(report.tileX, report.tileY)) 
-						{
-							AddOrder( report.agentID, ORDER_PICK_UP_FOOD ); 
-						} 
-						else 
-						{
-							MoveRandom( report.agentID );
-						}
-					}
+					//UpdateWorker(report);
 					break;
 				}
 				
-
 				// Soldier randomly walks
 				case AGENT_TYPE_SOLDIER:
 				{
-//					MoveRandom( report.agentID );
+					//UpdateSoldier(report);
 					break; 
 				}
 
@@ -184,31 +172,99 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 				// queen either moves or spawns randomly
 				case AGENT_TYPE_QUEEN: 
 				{
-					m_queenID = report.agentID;
-
-					if(m_currentNumWorkers < MIN_NUM_WORKERS)
-					{
-						AddOrder( report.agentID, ORDER_BIRTH_WORKER );
-					}
-// 					const float random_spawn_chance = 0.9f; 
-// 					if (g_randomNumberGenerator.GetRandomFloatZeroToOne() < random_spawn_chance)
-// 					{
-// 						// spawn
-// 						const int type_offset = rand() % 3;
-// 						const eOrderCode order = static_cast<eOrderCode>(ORDER_BIRTH_SCOUT + type_offset); 
-// 						AddOrder( report.agentID, order ); 
-// 					} 
-// 					else 
-// 					{
-// 						MoveRandom( report.agentID ); 
-// 					}
-
+					UpdateQueen(report);
 					break; 	
 				}
 				default: { break; }
 			}
 		}
 	}
+}
+
+
+void MainThread::UpdateScout(AgentReport& report)
+{
+	if(report.result == AGENT_WAS_CREATED)
+	{
+		++m_currentNumScouts;
+	}
+}
+
+
+void MainThread::UpdateWorker(AgentReport& report)
+{
+	if(report.result == AGENT_WAS_CREATED)
+	{
+		++m_currentNumWorkers;
+	}
+
+	if (report.state == STATE_HOLDING_FOOD) 
+	{
+		const IntVec2 queen_coord(m_agentLastKnownLocation[m_queenID].x,
+			m_agentLastKnownLocation[m_queenID].y);
+
+		if(report.tileX == queen_coord.x && report.tileY == queen_coord.y)
+		{
+			AddOrder( report.agentID, ORDER_DROP_CARRIED_OBJECT ); 
+		}
+		else
+		{
+			if(report.result == AGENT_ORDER_ERROR_MOVE_BLOCKED_BY_TILE)
+			{
+				MoveRandom( report.agentID );
+			}
+			else
+			{
+				MoveGreedy( report.agentID );
+			}
+		}
+	}
+	else 
+	{
+		if (Geographer::DoesCoordHaveFood(report.tileX, report.tileY)) 
+		{
+			AddOrder( report.agentID, ORDER_PICK_UP_FOOD ); 
+		} 
+		else 
+		{
+			MoveRandom( report.agentID );
+		}
+	}
+}
+
+
+void MainThread::UpdateSoldier(AgentReport& report)
+{
+	if(report.result == AGENT_WAS_CREATED)
+	{
+		++m_currentNumSoldier;
+	}
+
+	//					MoveRandom( report.agentID );
+}
+
+
+void MainThread::UpdateQueen(AgentReport& report)
+{
+	if(report.result == AGENT_WAS_CREATED)
+	{
+		++m_currentNumQueen;
+	}
+
+	m_queenID = report.agentID;
+	IntVec2 coord(report.tileX, report.tileY);
+	std::vector<eOrderCode> pathing = Geographer::PathfindDijkstra(coord, IntVec2::ONE);
+	AddOrder(report.agentID, pathing.front());
+// 	if(m_currentNumWorkers < MIN_NUM_WORKERS)
+// 	{
+// 		AddOrder( report.agentID, ORDER_BIRTH_WORKER );
+// 	}
+// 	else if(m_currentNumSoldier < MIN_NUM_SOLDIERS)
+// 	{
+// 		AddOrder( report.agentID, ORDER_BIRTH_SOLDIER );
+// 	}
+
+	
 }
 
 
@@ -222,14 +278,10 @@ void MainThread::MoveRandom( AgentID agent )
 
 void MainThread::MoveGreedy( AgentID agent )
 {
-	short agent_x = m_agentLastKnownLocation[agent].first;
-	short agent_y = m_agentLastKnownLocation[agent].second;
-	short queen_x = m_agentLastKnownLocation[m_queenID].first;
-	short queen_y = m_agentLastKnownLocation[m_queenID].second;
-	
-	const eOrderCode order = Geographer::GreedyMovement(agent_x, 
-		agent_y, queen_x, queen_y);
+	IntVec2 agent_coord(m_agentLastKnownLocation[agent].x, m_agentLastKnownLocation[agent].y);
+	IntVec2 queen_coord(m_agentLastKnownLocation[m_queenID].x, m_agentLastKnownLocation[m_queenID].y);
 
+	const eOrderCode order = Geographer::GreedyMovement(agent_coord,  queen_coord );
 
 	AddOrder( agent, order ); 
 }
@@ -237,12 +289,12 @@ void MainThread::MoveGreedy( AgentID agent )
 
 void MainThread::AddOrder( AgentID agent, eOrderCode order )
 {
-	// TODO: Be sure that I don't double issue an order to an agent
+	TODO("Be sure that I don't double issue an order to an agent")
 	// Only first order will be processed by the server and a fault will be 
 	// issued for any bad order
 	// Ants not given ordres are assumed to idle
 
-	// TODO: Make sure I'm not adding too many orders
+	TODO("Make sure I'm not adding too many orders")
 	const int agent_idx = m_turnOrders.numberOfOrders;
 
 	m_turnOrders.orders[agent_idx].agentID = agent; 
@@ -250,4 +302,3 @@ void MainThread::AddOrder( AgentID agent, eOrderCode order )
 
 	m_turnOrders.numberOfOrders++; 
 }
-

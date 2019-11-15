@@ -140,8 +140,14 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="code\Architecture\Heap.hpp" />
     <ClInclude Include="code\Arena\ArenaPlayerInterface.hpp" />
+    <ClInclude Include="code\Async\AbstractRequest.hpp" />
+    <ClInclude Include="code\Async\Dispatcher.hpp" />
+    <ClInclude Include="code\Async\Request.hpp" />
+    <ClInclude Include="code\Async\Worker.hpp" />
     <ClInclude Include="code\Blackboard.hpp" />
+    <ClInclude Include="code\GameRequest.hpp" />
     <ClInclude Include="code\Geographer.hpp" />
     <ClInclude Include="code\MainThread.hpp" />
     <ClInclude Include="code\Math\IntVec2.hpp" />
@@ -151,8 +157,13 @@
     <ClInclude Include="code\Math\Vec2.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="code\Architecture\Heap.cpp" />
+    <ClCompile Include="code\Async\Dispatcher.cpp" />
+    <ClCompile Include="code\Async\Request.cpp" />
+    <ClCompile Include="code\Async\Worker.cpp" />
     <ClCompile Include="code\Blackboard.cpp" />
     <ClCompile Include="code\dll\PlayerImpl.cpp" />
+    <ClCompile Include="code\GameRequest.cpp" />
     <ClCompile Include="code\Geographer.cpp" />
     <ClCompile Include="code\MainThread.cpp" />
     <ClCompile Include="code\Math\IntVec2.cpp" />

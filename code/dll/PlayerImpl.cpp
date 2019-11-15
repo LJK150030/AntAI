@@ -18,8 +18,15 @@ void PreGameStartup( const StartupInfo& info )
 // any clean up or reporting
 void PostGameShutdown( const MatchResults& results )
 {
-	g_thePlayer->Shutdown( results ); 
-	delete g_thePlayer; 
+	g_thePlayer->Shutdown( results );
+
+	while(g_thePlayer->m_numActiveThreads != 0)
+	{
+		std::this_thread::yield();
+	}
+	
+	delete g_thePlayer;
+	g_thePlayer = nullptr;
 }
 
 
