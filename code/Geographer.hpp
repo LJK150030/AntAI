@@ -11,30 +11,30 @@ public:
 	static void Startup();
 	static void Shutdown();
 	static void Update();
-	
-	//accessor
 	static Geographer GetInstance();
+	
+	//Tile Queries
 	static bool DoesCoordHaveFood(const IntVec2& coord );
+	static bool IsSafeTile( short tile_index );
 
-	//mutators
+	//Alter Records
 	static void SetMapDimensions( int width );
 	static void CopyObservableArenaData();
 	static void UpdatePerception();
+	static void UpdatePerceptionAt( const IntVec2& coord );
 
-	//helpers
+	//Helpers Functions
 	static short GetTileIndex(const IntVec2& coord);
-	static short GetTileIndexFromCardDir( eOrderCode dir, short start_idx, bool reverse_dir = false );
-	static bool IsSafeTile( short tile_index );
-
 	static IntVec2 GetTileCoord( short tile_index );
-	static IntVec2 GetCoordFromCardDir( eOrderCode dir, const IntVec2& start_coord, bool reverse_dir = false );
 	static bool IsValidCoord( const IntVec2& coord );
+	static IntVec2 GetCoordFromCardDir( eOrderCode dir, const IntVec2& start_coord, bool reverse_dir = false );
+	static short GetTileIndexFromCardDir( eOrderCode dir, short start_idx, bool reverse_dir = false );
 
 	
 	static std::vector<IntVec2> Neighbors( short coord );
 	static std::vector<IntVec2> Neighbors( const IntVec2& coord );
 	
-	//debugging
+	//Debug drawing
 	static void DebugPrintCostMap(const std::map<short, NodeRecord>& closed_list);
 	static void DebugPrintDirectionMap(const std::map<short, NodeRecord>& closed_list);
 	static void DebugPrintPath(const std::map<short, NodeRecord>& closed_list, const IntVec2& start, const IntVec2&  end);

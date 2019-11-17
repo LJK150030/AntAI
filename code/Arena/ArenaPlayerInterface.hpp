@@ -19,6 +19,7 @@
 // 9: Added a RequestPauseAfterTurn() to the debug interface; 
 // 10: changed eOrderCode storage type to unsigned char (was default-int)
 // 11: Removed some redudnant order result codes, and added nutrient loss information to given stats; 
+// 11.1: Added new emotes - does not break old version, so not updating version
 //-----------------------------------------------------------------------------------------------
 constexpr int	COMMON_INTERFACE_VERSION_NUMBER		= 11;
 
@@ -122,7 +123,10 @@ enum eOrderCode : unsigned char
 	ORDER_EMOTE_SAD,
 	ORDER_EMOTE_ANGRY,
 	ORDER_EMOTE_TAUNT,
-	ORDER_EMOTE_DANCE,
+	ORDER_EMOTE_DEPRESSED,
+	ORDER_EMOTE_CONFUSED, 
+	ORDER_EMOTE_SCARED, 
+	ORDER_EMOTE_ASTONISHED, 
 
 	NUM_ORDERS
 };

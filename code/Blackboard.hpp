@@ -36,6 +36,11 @@ extern ArenaTurnStateForPlayer	g_turnState;
 
 constexpr int MIN_NUM_WORKERS = 5;
 constexpr int MIN_NUM_SOLDIERS = 1;
+constexpr int SPAWN_SOLDIERS_AFTER = 150;
+
+constexpr float POP_WORKER_TO_FOOD = 0.005f;
+constexpr float POP_WORKER_SURPLUS = 0.25f;
+
 constexpr int MAX_CONTAINER_SIZE = 65'536;
 constexpr int MAX_TREE_DEPTH = 50;
 constexpr int MAX_PATH = MAX_TREE_DEPTH*MAX_TREE_DEPTH + (MAX_TREE_DEPTH + 1)*(MAX_TREE_DEPTH+1);
@@ -50,4 +55,15 @@ enum JobCategory
 	JOB_PHYSICS,
 
 	NUM_JOB_CATEGORIES
+};
+
+enum eQueueType
+{
+	UNKNOWN_QUEUE_TYPE = -1,
+
+	QUEUE_FIFO,
+	QUEUE_LIFO,
+	QUEUE_PRIORITY,
+
+	NUM_QUEUE_TYPES
 };

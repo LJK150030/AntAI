@@ -2,23 +2,24 @@
 #include "Blackboard.hpp"
 
 TODO("This is over engineered. Use heap memeory since these are going to be big objecs")
-template <typename T, int Size = MAX_PATH>
+template <typename Item>
 class MinHeap
 {
 public:
-	MinHeap();
+	MinHeap(int size);
+	~MinHeap();
 
 	//mutators
-	void	Push(T value);
-	T		Pop();
+	void	Push(Item value);
+	Item	Pop();
 	void	DeleteAtIdx(int idx);
-	void	UpdateAtIdx(int idx, T new_val);
+	void	UpdateAtIdx(int idx, Item new_val);
 
 	//accessors
 	int		GetSize() const;
-	bool	Contains(T value) const;
-	int		GetIndex(T value) const;
-	const T	GetReferenceAt(int idx) const;
+	bool	Contains(Item value) const;
+	int		GetIndex(Item value) const;
+	Item	GetReferenceAt(int idx) const;
 
 	
 private:
@@ -29,27 +30,32 @@ private:
 	void MinHeapify(int idx);
 	
 private:
-	T m_heap[Size];
-	int m_size = 0;
+	Item* m_heap;
+	int m_size;
 };
 
 
-template <typename T, int Size>
-MinHeap<T, Size>::MinHeap() { }
-
-
-template <typename T, int Size>
-void MinHeap<T, Size>::Push(T value)
+template <typename Item>
+MinHeap<Item>::MinHeap(const int size)
 {
-	if (m_size == Size) 
-	{ 
-		return; 
-	}
+	m_heap = new Item[size];
+	m_size = 0;
+}
 
+template <typename Item>
+MinHeap<Item>::~MinHeap()
+{
+	delete[] m_heap;
+}
+
+
+template <typename Item>
+void MinHeap<Item>::Push(Item value)
+{
 	++m_size;
 	int current_idx = m_size - 1; 
 	int parent_idx = GetParentIdx(current_idx);
-	m_heap[current_idx] = value;
+	m_heap[current_idx] = (value);
 
 	while (current_idx != 0 && m_heap[parent_idx] > m_heap[current_idx]) 
 	{ 
@@ -60,12 +66,12 @@ void MinHeap<T, Size>::Push(T value)
 }
 
 
-template <typename T, int Size>
-T MinHeap<T, Size>::Pop()
+template <typename Item>
+Item MinHeap<Item>::Pop()
 {
 	if (m_size <= 0)
 	{
-		return T();
+		return Item();
 	}
 
 	if (m_size == 1) 
@@ -75,7 +81,7 @@ T MinHeap<T, Size>::Pop()
 	} 
 
 	// Store the minimum value, and remove it from heap 
-	T root = m_heap[0]; 
+	Item root = m_heap[0]; 
 	m_heap[0] = m_heap[m_size-1]; 
 	m_size--; 
 	MinHeapify(0); 
@@ -84,16 +90,16 @@ T MinHeap<T, Size>::Pop()
 }
 
 
-template <typename T, int Size>
-void MinHeap<T, Size>::DeleteAtIdx(int idx)
+template <typename Item>
+void MinHeap<Item>::DeleteAtIdx(const int idx)
 {
-	UpdateAtIdx(idx, T()); 
+	UpdateAtIdx(idx, Item()); 
 	Pop(); 
 }
 
 
-template <typename T, int Size>
-void MinHeap<T, Size>::UpdateAtIdx(int idx, T new_val)
+template <typename Item>
+void MinHeap<Item>::UpdateAtIdx(int idx, Item new_val)
 {
 	int updated_idx = idx;
 	m_heap[updated_idx] = new_val;
@@ -106,15 +112,15 @@ void MinHeap<T, Size>::UpdateAtIdx(int idx, T new_val)
 }
 
 
-template <typename T, int Size>
-int MinHeap<T, Size>::GetSize() const
+template <typename Item>
+int MinHeap<Item>::GetSize() const
 {
 	return m_size;
 }
 
 
-template <typename T, int Size>
-bool MinHeap<T, Size>::Contains(T value) const
+template <typename Item>
+bool MinHeap<Item>::Contains(Item value) const
 {
 	for(int idx = 0; idx < m_size; ++idx)
 	{
@@ -125,8 +131,8 @@ bool MinHeap<T, Size>::Contains(T value) const
 }
 
 
-template <typename T, int Size>
-int MinHeap<T, Size>::GetIndex(T value) const
+template <typename Item>
+int MinHeap<Item>::GetIndex(Item value) const
 {
 	for(int idx = 0; idx < m_size; ++idx)
 	{
@@ -137,45 +143,45 @@ int MinHeap<T, Size>::GetIndex(T value) const
 }
 
 
-template <typename T, int Size>
-const T MinHeap<T, Size>::GetReferenceAt(int idx) const
+template <typename Item>
+Item MinHeap<Item>::GetReferenceAt(int idx) const
 {
 	return m_heap[idx];
 }
 
 
-template <typename T, int Size>
-int MinHeap<T, Size>::GetLeftChildIdx(int idx)
+template <typename Item>
+int MinHeap<Item>::GetLeftChildIdx(int idx)
 {
 	return 2 * idx;
 }
 
 
-template <typename T, int Size>
-int MinHeap<T, Size>::GetRightChildIdx(int idx)
+template <typename Item>
+int MinHeap<Item>::GetRightChildIdx(int idx)
 {
 	return 2 * idx + 1;
 }
 
 
-template <typename T, int Size>
-int MinHeap<T, Size>::GetParentIdx(int idx)
+template <typename Item>
+int MinHeap<Item>::GetParentIdx(int idx)
 {
 	return idx / 2;
 }
 
 
-template <typename T, int Size>
-void MinHeap<T, Size>::Swap(int idx_a, int idx_b)
+template <typename Item>
+void MinHeap<Item>::Swap(int idx_a, int idx_b)
 {
-	T temp = m_heap[idx_a]; 
+	Item temp = m_heap[idx_a]; 
 	m_heap[idx_a] = m_heap[idx_b]; 
 	m_heap[idx_b] = temp;
 }
 
 
-template <typename T, int Size>
-void MinHeap<T, Size>::MinHeapify(int idx)
+template <typename Item>
+void MinHeap<Item>::MinHeapify(int idx)
 {
 	int left_child = GetLeftChildIdx(idx); 
 	int right_child = GetRightChildIdx(idx); 

@@ -1,6 +1,43 @@
 #include "MainThread.hpp"
 #include "Blackboard.hpp"
-#include "Geographer.hpp"
+#include "Geographer/Geographer.hpp"
+#include <queue>
+#include "Math/MathUtils.hpp"
+
+
+Ant::Ant(): report()
+{
+}
+
+Ant::Ant( AgentReport& agent): report(agent)
+{
+}
+
+Ant::~Ant()
+{
+	
+}
+
+void Ant::Update(AgentReport& updated_report)
+{
+	report = updated_report;
+
+	switch(report.result)
+	{
+	case AGENT_ORDER_ERROR_MOVE_BLOCKED_BY_TILE:
+		{
+			temperature -= 0.03;
+			break;
+		}
+	}
+
+	temperature = ClampFloat(temperature, 0.0f, 1.0f);
+}
+
+void Ant::UpdateMap()
+{
+	
+}
 
 
 void MainThread::Startup( const StartupInfo& info )
@@ -16,6 +53,7 @@ void MainThread::Startup( const StartupInfo& info )
 	m_lastTurnProcessed = -1; 
 	m_running = true;
 
+	m_colony = std::map<AgentID, Ant>();
 	
 	Geographer::Startup();
 }
@@ -107,11 +145,7 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 	{
 		AgentReport& report = turn_state.agentReports[i];
 
-		if(report.state != STATE_DEAD)
-		{
-			m_agentLastKnownLocation[report.agentID] = IntVec2(report.tileX, report.tileY);
-		}
-		else
+		if(report.state == STATE_DEAD)
 		{
 			switch(report.type)
 			{
@@ -123,6 +157,10 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 				case AGENT_TYPE_WORKER:
 				{
 					--m_currentNumWorkers;
+					if(report.result == AGENT_ORDER_SUCCESS_SUICIDE)
+					{
+						m_workerDead = false;
+					}
 					break;
 				}
 				case AGENT_TYPE_SOLDIER:
@@ -137,7 +175,7 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 				}
 			}
 			
-			m_agentLastKnownLocation.erase(report.agentID);
+			m_colony.erase(report.agentID);
 			continue;
 		}
 		
@@ -188,6 +226,8 @@ void MainThread::UpdateScout(AgentReport& report)
 	{
 		++m_currentNumScouts;
 	}
+
+	AddOrder( report.agentID, ORDER_SUICIDE );
 }
 
 
@@ -198,10 +238,17 @@ void MainThread::UpdateWorker(AgentReport& report)
 		++m_currentNumWorkers;
 	}
 
+	
+	m_colony[report.agentID].Update(report);
+
+	float num_workers = (POP_WORKER_SURPLUS * g_turnState.currentNutrients) / 
+		g_matchInfo.agentTypeInfos[AGENT_TYPE_WORKER].upkeepPerTurn;
+
+	
 	if (report.state == STATE_HOLDING_FOOD) 
 	{
-		const IntVec2 queen_coord(m_agentLastKnownLocation[m_queenID].x,
-			m_agentLastKnownLocation[m_queenID].y);
+		const IntVec2 queen_coord(m_colony[m_queenID].report.tileX, 
+			m_colony[m_queenID].report.tileY);
 
 		if(report.tileX == queen_coord.x && report.tileY == queen_coord.y)
 		{
@@ -215,13 +262,18 @@ void MainThread::UpdateWorker(AgentReport& report)
 			}
 			else
 			{
-				MoveGreedy( report.agentID );
+				MoveGreedy( report.agentID, queen_coord );
 			}
 		}
 	}
 	else 
 	{
-		if (Geographer::DoesCoordHaveFood(IntVec2(report.tileX, report.tileY))) 
+		if(m_currentNumWorkers > num_workers && !m_workerDead)
+		{
+			AddOrder( report.agentID, ORDER_SUICIDE );
+			m_workerDead = true;
+		}
+		else if (Geographer::DoesCoordHaveFood(IntVec2(report.tileX, report.tileY))) 
 		{
 			AddOrder( report.agentID, ORDER_PICK_UP_FOOD ); 
 		} 
@@ -240,7 +292,13 @@ void MainThread::UpdateSoldier(AgentReport& report)
 		++m_currentNumSoldier;
 	}
 
-	//					MoveRandom( report.agentID );
+	if(g_turnState.turnNumber < SPAWN_SOLDIERS_AFTER)
+	{
+		AddOrder( report.agentID, ORDER_SUICIDE );
+		return;
+	}
+	
+	m_colony[report.agentID].Update(report);
 }
 
 
@@ -249,21 +307,27 @@ void MainThread::UpdateQueen(AgentReport& report)
 	if(report.result == AGENT_WAS_CREATED)
 	{
 		++m_currentNumQueen;
+		m_colony.emplace(report.agentID, Ant(report));
 	}
 
 	m_queenID = report.agentID;
+	m_colony[report.agentID].Update(report);
+
 	IntVec2 coord(report.tileX, report.tileY);
 	std::vector<eOrderCode> pathing = Geographer::PathfindDijkstra(coord, IntVec2::ONE);
 	AddOrder(report.agentID, pathing.front());
-// 	if(m_currentNumWorkers < MIN_NUM_WORKERS)
-// 	{
-// 		AddOrder( report.agentID, ORDER_BIRTH_WORKER );
-// 	}
-// 	else if(m_currentNumSoldier < MIN_NUM_SOLDIERS)
+
+// 	float num_workers = (POP_WORKER_TO_FOOD * g_turnState.currentNutrients) / 
+// 		g_matchInfo.agentTypeInfos[AGENT_TYPE_WORKER].upkeepPerTurn;
+// 	
+// 	if(m_currentNumSoldier < MIN_NUM_SOLDIERS && g_turnState.turnNumber > SPAWN_SOLDIERS_AFTER)
 // 	{
 // 		AddOrder( report.agentID, ORDER_BIRTH_SOLDIER );
 // 	}
-
+// 	else if(m_currentNumWorkers < num_workers)
+// 	{
+// 		AddOrder( report.agentID, ORDER_BIRTH_WORKER );
+// 	}
 	
 }
 
@@ -276,12 +340,11 @@ void MainThread::MoveRandom( AgentID agent )
 	AddOrder( agent, order ); 
 }
 
-void MainThread::MoveGreedy( AgentID agent )
+void MainThread::MoveGreedy( AgentID agent, const IntVec2& coord )
 {
-	IntVec2 agent_coord(m_agentLastKnownLocation[agent].x, m_agentLastKnownLocation[agent].y);
-	IntVec2 queen_coord(m_agentLastKnownLocation[m_queenID].x, m_agentLastKnownLocation[m_queenID].y);
+	IntVec2 agent_coord(m_colony[agent].report.tileX, m_colony[agent].report.tileY);
 
-	const eOrderCode order = Geographer::GreedyMovement(agent_coord,  queen_coord );
+	const eOrderCode order = Geographer::GreedyMovement(agent_coord, coord );
 
 	AddOrder( agent, order ); 
 }

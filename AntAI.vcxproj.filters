@@ -20,13 +20,13 @@
     <Filter Include="Async">
       <UniqueIdentifier>{a525a56d-c628-4fe6-85ac-d49c8ea0e60a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Geographer">
+      <UniqueIdentifier>{c4666bab-1eca-4072-ab71-3108fc5695de}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="code\Arena\ArenaPlayerInterface.hpp">
       <Filter>Arena</Filter>
-    </ClInclude>
-    <ClInclude Include="code\Geographer.hpp">
-      <Filter>code</Filter>
     </ClInclude>
     <ClInclude Include="code\Blackboard.hpp">
       <Filter>code</Filter>
@@ -67,13 +67,25 @@
     <ClInclude Include="code\GameRequest.hpp">
       <Filter>code</Filter>
     </ClInclude>
+    <ClInclude Include="code\Geographer\Geographer.hpp">
+      <Filter>Geographer</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Architecture\Queue.hpp">
+      <Filter>Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Architecture\QueueIterator.hpp">
+      <Filter>Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Architecture\FifoIterator.hpp">
+      <Filter>Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Geographer\SearchGraph.hpp">
+      <Filter>Geographer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="code\dll\PlayerImpl.cpp">
       <Filter>dll</Filter>
-    </ClCompile>
-    <ClCompile Include="code\Geographer.cpp">
-      <Filter>code</Filter>
     </ClCompile>
     <ClCompile Include="code\Blackboard.cpp">
       <Filter>code</Filter>
@@ -107,6 +119,21 @@
     </ClCompile>
     <ClCompile Include="code\GameRequest.cpp">
       <Filter>code</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Geographer\Geographer.cpp">
+      <Filter>Geographer</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Architecture\Queue.cpp">
+      <Filter>Architecture</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Architecture\QueueIterator.cpp">
+      <Filter>Architecture</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Architecture\FifoIterator.cpp">
+      <Filter>Architecture</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Geographer\SearchGraph.cpp">
+      <Filter>Geographer</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
