@@ -147,7 +147,7 @@ void SearchGraph::DebugPrintCostMap()
 		const float x_coord = static_cast<float>(coord.x);
 		const float y_coord = static_cast<float>(coord.y);
 
-		int cost = m_searchSpace[node_idx].m_pathCost;
+		int cost = static_cast<int>(m_searchSpace[node_idx].m_pathCost);
 		std::string cost_string;
 		if(cost == FLT_MAX) cost_string = ".";
 		else cost_string = std::to_string(cost);

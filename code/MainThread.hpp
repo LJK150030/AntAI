@@ -7,24 +7,6 @@
 
 //-----------------------------------------------------------------------------------------------
 class MainThread; 
-
-//very hacky but for now, make a struct of ants
-struct Ant
-{
-public:
-	AgentReport report;
-	float temperature = 1.0f;
-
-public:
-	Ant(); 
-	Ant( AgentReport& agent );
-	~Ant();
-
-	void Update(AgentReport& updated_report);
-	void UpdateMap();
-};
-
-
 //-----------------------------------------------------------------------------------------------
 class MainThread
 {
@@ -40,7 +22,7 @@ public:
 	
 	// Helpers
 	void MoveRandom( AgentID agent );
-	void MoveGreedy( AgentID agent, const IntVec2& coord );
+	void MoveGreedy( AgentID agent, const IntVec2& start, const IntVec2& goal );
 	void AddOrder( AgentID agent, eOrderCode order );
 
 	void UpdateScout(AgentReport& report);
@@ -52,8 +34,8 @@ public:
 	int							m_lastTurnProcessed; 
 	bool						m_running; 
 
-	std::map<AgentID, Ant>		m_colony;
-	AgentID						m_queenID;
+	IntVec2						m_queenPos;
+	std::map<AgentID, short>	m_workerJobs;
 	int							m_currentNumScouts = 0;
 	int							m_currentNumWorkers = 0;
 	int							m_currentNumSoldier = 0;

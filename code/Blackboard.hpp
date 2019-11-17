@@ -34,12 +34,13 @@ extern MatchInfo				g_matchInfo;
 extern DebugInterface*			g_debugInterface;
 extern ArenaTurnStateForPlayer	g_turnState;
 
-constexpr int MIN_NUM_WORKERS = 5;
+constexpr int MIN_NUM_WORKERS = 75;
 constexpr int MIN_NUM_SOLDIERS = 1;
 constexpr int SPAWN_SOLDIERS_AFTER = 150;
 
-constexpr float POP_WORKER_TO_FOOD = 0.005f;
-constexpr float POP_WORKER_SURPLUS = 0.25f;
+constexpr float POP_WORKER_TO_FOOD = 0.0017f;
+constexpr float POP_WORKER_SURPLUS = 0.0071f;
+constexpr int CONSERVE_WORKERS_AT = 150;
 
 constexpr int MAX_CONTAINER_SIZE = 65'536;
 constexpr int MAX_TREE_DEPTH = 50;

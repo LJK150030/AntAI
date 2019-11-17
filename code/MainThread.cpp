@@ -1,43 +1,7 @@
 #include "MainThread.hpp"
 #include "Blackboard.hpp"
 #include "Geographer/Geographer.hpp"
-#include <queue>
 #include "Math/MathUtils.hpp"
-
-
-Ant::Ant(): report()
-{
-}
-
-Ant::Ant( AgentReport& agent): report(agent)
-{
-}
-
-Ant::~Ant()
-{
-	
-}
-
-void Ant::Update(AgentReport& updated_report)
-{
-	report = updated_report;
-
-	switch(report.result)
-	{
-	case AGENT_ORDER_ERROR_MOVE_BLOCKED_BY_TILE:
-		{
-			temperature -= 0.03;
-			break;
-		}
-	}
-
-	temperature = ClampFloat(temperature, 0.0f, 1.0f);
-}
-
-void Ant::UpdateMap()
-{
-	
-}
 
 
 void MainThread::Startup( const StartupInfo& info )
@@ -52,9 +16,8 @@ void MainThread::Startup( const StartupInfo& info )
 	g_turnState.turnNumber = -1; 
 	m_lastTurnProcessed = -1; 
 	m_running = true;
+	m_workerJobs = std::map<AgentID, short>();
 
-	m_colony = std::map<AgentID, Ant>();
-	
 	Geographer::Startup();
 }
 
@@ -161,6 +124,9 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 					{
 						m_workerDead = false;
 					}
+					Geographer::RemoveAntFromFoodTile(Geographer::GetTileCoord(m_workerJobs[report.agentID]));
+					m_workerJobs.erase(report.agentID);
+
 					break;
 				}
 				case AGENT_TYPE_SOLDIER:
@@ -175,7 +141,6 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 				}
 			}
 			
-			m_colony.erase(report.agentID);
 			continue;
 		}
 		
@@ -188,21 +153,21 @@ void MainThread::ProcessTurn( ArenaTurnStateForPlayer& turn_state )
 				// scout will randomly walk
 				case AGENT_TYPE_SCOUT:
 				{
-					//UpdateScout(report);
+					UpdateScout(report);
 					break;
 				}
 
 				// moves randomly, but if they fall on food, will pick it up if hands are free
 				case AGENT_TYPE_WORKER:
 				{
-					//UpdateWorker(report);
+					UpdateWorker(report);
 					break;
 				}
 				
 				// Soldier randomly walks
 				case AGENT_TYPE_SOLDIER:
 				{
-					//UpdateSoldier(report);
+					UpdateSoldier(report);
 					break; 
 				}
 
@@ -236,51 +201,86 @@ void MainThread::UpdateWorker(AgentReport& report)
 	if(report.result == AGENT_WAS_CREATED)
 	{
 		++m_currentNumWorkers;
+		m_workerJobs.emplace(report.agentID, -1);
 	}
 
-	
-	m_colony[report.agentID].Update(report);
-
-	float num_workers = (POP_WORKER_SURPLUS * g_turnState.currentNutrients) / 
-		g_matchInfo.agentTypeInfos[AGENT_TYPE_WORKER].upkeepPerTurn;
+	IntVec2 ant_coord(report.tileX, report.tileY);
 
 	
 	if (report.state == STATE_HOLDING_FOOD) 
 	{
-		const IntVec2 queen_coord(m_colony[m_queenID].report.tileX, 
-			m_colony[m_queenID].report.tileY);
-
-		if(report.tileX == queen_coord.x && report.tileY == queen_coord.y)
+		
+		if(report.tileX == m_queenPos.x && report.tileY == m_queenPos.y)
 		{
-			AddOrder( report.agentID, ORDER_DROP_CARRIED_OBJECT ); 
+			AddOrder( report.agentID, ORDER_DROP_CARRIED_OBJECT );
 		}
 		else
 		{
-			if(report.result == AGENT_ORDER_ERROR_MOVE_BLOCKED_BY_TILE)
-			{
-				MoveRandom( report.agentID );
-			}
-			else
-			{
-				MoveGreedy( report.agentID, queen_coord );
-			}
+			//we need to hall ass to the queen
+			std::vector<eOrderCode> pathing = Geographer::PathfindAstar(ant_coord, m_queenPos);
+			AddOrder(report.agentID, pathing.front());
 		}
 	}
 	else 
 	{
-		if(m_currentNumWorkers > num_workers && !m_workerDead)
+		
+		if(m_currentNumWorkers > MIN_NUM_WORKERS && !m_workerDead && g_turnState.turnNumber > CONSERVE_WORKERS_AT)
 		{
-			AddOrder( report.agentID, ORDER_SUICIDE );
 			m_workerDead = true;
+			AddOrder( report.agentID, ORDER_SUICIDE );
 		}
-		else if (Geographer::DoesCoordHaveFood(IntVec2(report.tileX, report.tileY))) 
+		//ant needs work
+		else if(m_workerJobs[report.agentID] == -1) 
 		{
-			AddOrder( report.agentID, ORDER_PICK_UP_FOOD ); 
-		} 
-		else 
-		{
-			MoveRandom( report.agentID );
+			IntVec2 coord_to_go_to = Geographer::AddAntToFoodTile(report.agentID);
+
+			//if there is no work
+			if(coord_to_go_to == IntVec2(-1, -1))
+			{
+				//MoveRandom(report.agentID);
+				AddOrder( report.agentID, ORDER_EMOTE_CONFUSED );
+			}
+			else
+			{		
+				m_workerJobs[report.agentID] = Geographer::GetTileIndex(coord_to_go_to);
+				std::vector<eOrderCode> pathing = Geographer::PathfindAstar(ant_coord, coord_to_go_to);
+				AddOrder(report.agentID, pathing.front());
+			}
 		}
+		else // ant has work
+		{
+			IntVec2 dest = Geographer::GetTileCoord(m_workerJobs[report.agentID]);
+
+			// are we at our destination?
+			if (ant_coord == dest) 
+			{
+				Geographer::RemoveAntFromFoodTile(ant_coord);
+
+				// is there food here
+				if(Geographer::DoesCoordHaveFood(IntVec2(report.tileX, report.tileY)))
+				{
+					AddOrder( report.agentID, ORDER_PICK_UP_FOOD );
+				}
+				// else the food has already been picked up
+				{
+// 					IntVec2 coord_to_go_to = Geographer::AddAntToFoodTile(report.agentID);
+// 					m_workerJobs[report.agentID] = Geographer::GetTileIndex(coord_to_go_to);
+// 					std::vector<eOrderCode> pathing = Geographer::PathfindAstar(ant_coord, coord_to_go_to);
+// 					AddOrder(report.agentID, pathing.front());
+ 					m_workerJobs[report.agentID] = -1;
+					AddOrder( report.agentID, ORDER_EMOTE_ANGRY );
+
+				}
+			}
+			// not at our destination
+			else
+			{
+				IntVec2 coord_to_go_to = Geographer::GetTileCoord(m_workerJobs[report.agentID]);
+				std::vector<eOrderCode> pathing = Geographer::PathfindAstar(ant_coord, coord_to_go_to);
+				AddOrder(report.agentID, pathing.front());
+			}
+		}
+
 	}
 }
 
@@ -295,10 +295,7 @@ void MainThread::UpdateSoldier(AgentReport& report)
 	if(g_turnState.turnNumber < SPAWN_SOLDIERS_AFTER)
 	{
 		AddOrder( report.agentID, ORDER_SUICIDE );
-		return;
 	}
-	
-	m_colony[report.agentID].Update(report);
 }
 
 
@@ -307,27 +304,26 @@ void MainThread::UpdateQueen(AgentReport& report)
 	if(report.result == AGENT_WAS_CREATED)
 	{
 		++m_currentNumQueen;
-		m_colony.emplace(report.agentID, Ant(report));
 	}
 
-	m_queenID = report.agentID;
-	m_colony[report.agentID].Update(report);
+	m_queenPos = IntVec2(report.tileX, report.tileY);
+	Geographer::UpdateListOfFood(m_queenPos);
 
-	IntVec2 coord(report.tileX, report.tileY);
-	std::vector<eOrderCode> pathing = Geographer::PathfindDijkstra(coord, IntVec2::ONE);
-	AddOrder(report.agentID, pathing.front());
+	//IntVec2 coord(report.tileX, report.tileY);
+	//std::vector<eOrderCode> pathing = Geographer::PathfindAstar(coord, IntVec2::ONE);
+	//AddOrder(report.agentID, pathing.front());
 
-// 	float num_workers = (POP_WORKER_TO_FOOD * g_turnState.currentNutrients) / 
-// 		g_matchInfo.agentTypeInfos[AGENT_TYPE_WORKER].upkeepPerTurn;
-// 	
-// 	if(m_currentNumSoldier < MIN_NUM_SOLDIERS && g_turnState.turnNumber > SPAWN_SOLDIERS_AFTER)
-// 	{
-// 		AddOrder( report.agentID, ORDER_BIRTH_SOLDIER );
-// 	}
-// 	else if(m_currentNumWorkers < num_workers)
-// 	{
-// 		AddOrder( report.agentID, ORDER_BIRTH_WORKER );
-// 	}
+	float max_workers = (POP_WORKER_SURPLUS * g_turnState.currentNutrients) / 
+		g_matchInfo.agentTypeInfos[AGENT_TYPE_WORKER].upkeepPerTurn;
+	
+	if(m_currentNumSoldier < MIN_NUM_SOLDIERS && g_turnState.turnNumber > SPAWN_SOLDIERS_AFTER)
+	{
+		AddOrder( report.agentID, ORDER_BIRTH_SOLDIER );
+	}
+	else if(m_currentNumWorkers < max_workers && m_currentNumWorkers <= MIN_NUM_WORKERS)
+	{
+		AddOrder( report.agentID, ORDER_BIRTH_WORKER );
+	}
 	
 }
 
@@ -340,11 +336,9 @@ void MainThread::MoveRandom( AgentID agent )
 	AddOrder( agent, order ); 
 }
 
-void MainThread::MoveGreedy( AgentID agent, const IntVec2& coord )
+void MainThread::MoveGreedy( AgentID agent,  const IntVec2& start, const IntVec2& goal )
 {
-	IntVec2 agent_coord(m_colony[agent].report.tileX, m_colony[agent].report.tileY);
-
-	const eOrderCode order = Geographer::GreedyMovement(agent_coord, coord );
+	const eOrderCode order = Geographer::GreedyMovement(start, goal );
 
 	AddOrder( agent, order ); 
 }

@@ -19,28 +19,40 @@ public:
 	//Tile Queries
 	static bool						DoesCoordHaveFood(const IntVec2& coord );
 	static bool						IsSafeTile( const IntVec2& coord );
-	static std::vector<IntVec2>		Neighbors( const IntVec2& coord );
-
+	static std::vector<IntVec2>		FourNeighbors( const IntVec2& coord );
+	static std::vector<IntVec2>		EightNeighbors( const IntVec2& coord );
+	static void						UpdateListOfFood(const IntVec2& coord);
+	static void						UpdateListOfFood();
+	
 	//Alter Records
 	static void		SetMapDimensions( int width );
 	static void		UpdatePerception();
+	static IntVec2	AddAntToFoodTile( AgentID ant );
+	static void		RemoveAntFromFoodTile( IntVec2 coord );
 	
 	//helpers
 	static IntVec2	GetTileCoord( short tile_index );
 	static IntVec2	GetCoordFromCardDir( eOrderCode dir, const IntVec2& start_coord, bool reverse_dir = false );
 	static bool		IsValidCoord( const IntVec2& coord );
 	static short	GetTileIndex(const IntVec2& coord);
-
+	static float	ManhattanHeuristic(const IntVec2& start, const IntVec2& end);
+	static float	OctileDistance(const IntVec2& start, const IntVec2& end);
+	static float	EuclideanHeuristic(const IntVec2& start, const IntVec2& end);
+	static void		ResetPathingMap();
 	
 	//debugging
 	static void DebugPrintCostMap(NodeRecord* map_records);
 	static void DebugPrintDirectionMap(NodeRecord* map_records);
 	static void DebugPrintPath(NodeRecord* map_records, const IntVec2& start, const IntVec2&  end);
-	
+	static void DebugPrintCostMap();
+	static void DebugPrintDirectionMap();
+	static void DebugPrintPath(const IntVec2& start, const IntVec2&  end);
+
 	//Pathing jobs
 	static eOrderCode GreedyMovement( const IntVec2& start, const IntVec2& end );
 	static std::vector<eOrderCode> PathfindDijkstra( const IntVec2& start, const IntVec2& end );
-	
+	static std::vector<eOrderCode> PathfindAstar( const IntVec2& start, const IntVec2& end );
+
 private:
 	Geographer();
 
@@ -50,6 +62,10 @@ private:
 	static int s_mapTotalSize;
 
 	static TileRecord s_perceivedMap[MAX_ARENA_TILES];
+	static NodeRecord s_pathingMap[MAX_ARENA_TILES];
+	const static NodeRecord DEFAULT_PATHING_MAP[MAX_ARENA_TILES];
+
+	static std::vector<short> s_foodLoc;
 };
 
 //Structure to relative information together for one tile
@@ -59,17 +75,20 @@ struct TileRecord
 	eTileType	m_tileType = TILE_TYPE_UNSEEN;
 	bool		m_hasFood = false;
 	int			m_lastUpdated = INT_MAX;
+	AgentID		m_goingToThisTile = UINT_MAX;
 };
 
 //Structure to keep track of nodes
 struct NodeRecord
 {
+	enum eNodeState {UNVISITED, OPEN, CLOSED};
+
 	IntVec2		m_coord = IntVec2(-1, -1);
 	short		m_parentIdx = -1;
 	eOrderCode	m_actionTook = ORDER_HOLD;
-	float		m_pathCost = FLT_MAX;
-	bool		m_inOpenList = false;
-	bool		m_inClosedList = false;
+	float		m_pathCost = FLT_MAX; 
+	float		m_heuristic = 0.0f;
+	eNodeState	m_nodeState = UNVISITED;
 };
 
 struct NodePriority
