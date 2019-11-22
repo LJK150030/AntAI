@@ -224,13 +224,14 @@ void MainThread::UpdateWorker(AgentReport& report)
 	else 
 	{
 		
-		if(m_currentNumWorkers > MIN_NUM_WORKERS && !m_workerDead && g_turnState.turnNumber > CONSERVE_WORKERS_AT)
-		{
-			m_workerDead = true;
-			AddOrder( report.agentID, ORDER_SUICIDE );
-		}
-		//ant needs work
-		else if(m_workerJobs[report.agentID] == -1) 
+// 		if(m_currentNumWorkers > MIN_NUM_WORKERS && !m_workerDead)
+// 		{
+// 			m_workerDead = true;
+// 			AddOrder( report.agentID, ORDER_SUICIDE );
+// 		}
+// 		//ant needs work
+// 		else
+		if(m_workerJobs[report.agentID] == -1) 
 		{
 			IntVec2 coord_to_go_to = Geographer::AddAntToFoodTile(report.agentID);
 
@@ -292,10 +293,10 @@ void MainThread::UpdateSoldier(AgentReport& report)
 		++m_currentNumSoldier;
 	}
 
-	if(g_turnState.turnNumber < SPAWN_SOLDIERS_AFTER)
-	{
-		AddOrder( report.agentID, ORDER_SUICIDE );
-	}
+// 	if(g_turnState.turnNumber < SPAWN_SOLDIERS_AFTER)
+// 	{
+// 		AddOrder( report.agentID, ORDER_SUICIDE );
+// 	}
 }
 
 
@@ -309,18 +310,12 @@ void MainThread::UpdateQueen(AgentReport& report)
 	m_queenPos = IntVec2(report.tileX, report.tileY);
 	Geographer::UpdateListOfFood(m_queenPos);
 
-	//IntVec2 coord(report.tileX, report.tileY);
-	//std::vector<eOrderCode> pathing = Geographer::PathfindAstar(coord, IntVec2::ONE);
-	//AddOrder(report.agentID, pathing.front());
-
-	float max_workers = (POP_WORKER_SURPLUS * g_turnState.currentNutrients) / 
-		g_matchInfo.agentTypeInfos[AGENT_TYPE_WORKER].upkeepPerTurn;
 	
-	if(m_currentNumSoldier < MIN_NUM_SOLDIERS && g_turnState.turnNumber > SPAWN_SOLDIERS_AFTER)
+	if(m_currentNumSoldier < MIN_NUM_SOLDIERS)
 	{
 		AddOrder( report.agentID, ORDER_BIRTH_SOLDIER );
 	}
-	else if(m_currentNumWorkers < max_workers && m_currentNumWorkers <= MIN_NUM_WORKERS)
+	else if(m_currentNumWorkers < MIN_NUM_WORKERS && m_currentNumWorkers < Geographer::HowMuchFoodCanISee())
 	{
 		AddOrder( report.agentID, ORDER_BIRTH_WORKER );
 	}

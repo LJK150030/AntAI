@@ -235,6 +235,126 @@ void Geographer::UpdateListOfFood()
 	std::shuffle(std::begin(s_foodLoc), std::end(s_foodLoc), rng);
 }
 
+int Geographer::HowMuchFoodCanISee()
+{
+	return s_foodLoc.size();
+}
+
+float Geographer::GetHeatMapValueAt(const IntVec2& coord, eMapData map_data)
+{
+	short coord_idx = GetTileIndex(coord);
+
+	//kinda bad, assuming all map data is floats
+	switch(map_data)
+	{
+		case MAP_TILE_TYPE:
+		{
+			return static_cast<float>(s_perceivedMap[coord_idx].m_tileType);
+			break;
+		}
+		case MAP_FOOD:
+		{
+			return static_cast<float>(s_perceivedMap[coord_idx].m_hasFood);
+			break;
+		}
+		case MAP_LAST_UPDATED:
+		{
+			return static_cast<float>(s_perceivedMap[coord_idx].m_lastUpdated);
+			break;
+		}
+		case MAP_ANT_RESERVE:
+		{
+			return static_cast<float>(s_perceivedMap[coord_idx].m_goingToThisTile);
+			break;
+		}
+		default:
+		{
+			return -1;	
+			
+		}
+	}
+}
+
+void Geographer::EdgeDetection(std::vector<float>& out_card_dir, const IntVec2& coord, int depth, eMapData heat_map)
+{
+	//same as the cardinal directions enums
+	// 0: EAST
+	// 1: NORTH
+	// 2: WEST
+	// 3: SOUTH
+
+	float east_summation = 0.0f;
+	float north_summation = 0.0f;
+	float west_summation = 0.0f;
+	float south_summation = 0.0f;
+
+	for(int x_dir = 0; x_dir <= depth; ++x_dir)
+	{
+		IntVec2 check_coord = coord;
+		const int y_dif = depth - x_dir;
+		if(x_dir == 0 && y_dif == 0)
+		{
+			//center (only for 0 depth case)
+			east_summation += GetHeatMapValueAt(coord, heat_map);
+			north_summation += GetHeatMapValueAt(coord, heat_map);
+			west_summation += GetHeatMapValueAt(coord, heat_map);
+			south_summation += GetHeatMapValueAt(coord, heat_map);
+		}
+		else if(x_dir == 0)
+		{
+			//out_coords.emplace_back(0, 1 * y_dif); NORTH
+			//out_coords.emplace_back(0, -1 * y_dif); SOUTH
+			IntVec2 north_coord(coord.x, coord.y + 1 * y_dif);
+			IntVec2 south_coord(coord.x, coord.y + -1 * y_dif);
+
+			if(IsValidCoord(north_coord))	
+				north_summation += GetHeatMapValueAt(north_coord, heat_map);
+
+			if(IsValidCoord(south_coord))	
+				south_summation += GetHeatMapValueAt(south_coord, heat_map);
+		}
+		else if(y_dif == 0)
+		{
+			//out_coords.emplace_back(1 * x_dir, 0); EAST
+			//out_coords.emplace_back(-1 * x_dir, 0); WEST
+
+			IntVec2 east_coord(coord.x + 1 * x_dir, coord.y);
+			IntVec2 west_coord(coord.x + -1 * y_dif, coord.y);
+
+			if(IsValidCoord(east_coord))	
+				east_summation += GetHeatMapValueAt(east_coord, heat_map);
+
+			if(IsValidCoord(west_coord))	
+				west_summation += GetHeatMapValueAt(west_coord, heat_map);
+		}
+		else
+		{
+			// this will be a bit more hands on
+			//out_coords.emplace_back(1 * x_dir, 1 * y_dif);
+			//out_coords.emplace_back(1 * x_dir, -1 * y_dif);
+			//out_coords.emplace_back(-1 * x_dir, 1 * y_dif);
+			//out_coords.emplace_back(-1 * x_dir, -1 * y_dif);
+
+			IntVec2 NE_coord(coord.x + 1 * x_dir, coord.y + 1 * y_dif);
+			IntVec2 NW_coord(coord.x + 1 * x_dir, coord.y + -1 * y_dif);
+			IntVec2 SE_coord(coord.x + -1 * x_dir, coord.y + 1 * y_dif);
+			IntVec2 SW_coord(coord.x + -1 * x_dir, coord.y + -1 * y_dif);
+
+			//even
+
+			//odd
+			
+			
+			//need to consider even and odd depth
+		}
+	}
+
+	out_card_dir.push_back(east_summation);
+	out_card_dir.push_back(north_summation);
+	out_card_dir.push_back(west_summation);
+	out_card_dir.push_back(south_summation);
+}
+
 
 //--------------------------------------------------------------------------
 // Alter Records
@@ -308,6 +428,99 @@ float Geographer::EuclideanHeuristic(const IntVec2& start, const IntVec2& end)
 STATIC void Geographer::ResetPathingMap()
 {
 	memcpy(s_pathingMap, DEFAULT_PATHING_MAP, MAX_ARENA_TILES * sizeof(NodeRecord));
+}
+
+STATIC void Geographer::GetCenteredSquareDis(std::vector<IntVec2>& out_coords, int depth, bool just_edge)
+{
+	if(just_edge)
+	{
+		// C_{4,0} = { (0, 0) }
+		// C_{4,1} = { (-1, 0), (0, -1), (0, 1), (1, 0) } 
+		// C_{4,1} = { (-2, 0), (-1, -1), (-1, 1), (0, -2), (0, 2), (1, -1), (1, 1), (2, 0) }
+
+		for(int x_dir = 0; x_dir <= depth; ++x_dir)
+		{
+			const int y_dif = depth - x_dir;
+			if(x_dir == 0 && y_dif == 0)
+			{
+				out_coords.emplace_back(0, 0);
+			}
+			else if(x_dir == 0)
+			{
+				out_coords.emplace_back(0, 1 * y_dif);
+				out_coords.emplace_back(0, -1 * y_dif);
+			}
+			else if(y_dif == 0)
+			{
+				out_coords.emplace_back(1 * x_dir, 0);
+				out_coords.emplace_back(-1 * x_dir, 0);
+			}
+			else
+			{
+				out_coords.emplace_back(1 * x_dir, 1 * y_dif);
+				out_coords.emplace_back(1 * x_dir, -1 * y_dif);
+				out_coords.emplace_back(-1 * x_dir, 1 * y_dif);
+				out_coords.emplace_back(-1 * x_dir, -1 * y_dif);
+			}
+		}
+	}
+	else
+	{
+		for(int num = 0; num <= depth; num++)
+		{
+			for(int x_dir = 0; x_dir <= num; ++x_dir)
+			{
+				const int y_dif = num - x_dir;
+
+				if(x_dir == 0 && y_dif == 0)
+				{
+					out_coords.emplace_back(0, 0);
+				}
+				else if(x_dir == 0)
+				{
+					out_coords.emplace_back(0, 1 * y_dif);
+					out_coords.emplace_back(0, -1 * y_dif);
+				}
+				else if(y_dif == 0)
+				{
+					out_coords.emplace_back(1 * x_dir, 0);
+					out_coords.emplace_back(-1 * x_dir, 0);
+				}
+				else
+				{
+					out_coords.emplace_back(1 * x_dir, 1 * y_dif);
+					out_coords.emplace_back(1 * x_dir, -1 * y_dif);
+					out_coords.emplace_back(-1 * x_dir, 1 * y_dif);
+					out_coords.emplace_back(-1 * x_dir, -1 * y_dif);
+				}
+			}
+		}
+	}
+}
+
+STATIC int Geographer::GetCenteredSquareCount(int depth, bool just_edge)
+{
+	int offset = depth + 1; //1 vision means one tiles away from us
+	
+	if(just_edge)
+	{
+		// C_{4,0} = 0
+		// C_{4,1} = 1
+		// C_{4,2} = 4
+		// C_{4,3} = 9
+		// C_{4,4} = 16
+		// C_{4,n} = n^2
+		return offset*offset;
+	} // else we want the entire diamond
+	{
+		// C_{4,0} = 0
+		// C_{4,1} = 1
+		// C_{4,2} = 5
+		// C_{4,3} = 13
+		// C_{4,4} = 25
+		// C_{4,n} = n^2 + (n - 1)^2
+		return offset*offset + (offset - 1)*(offset - 1);
+	}
 }
 
 

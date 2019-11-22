@@ -20,8 +20,9 @@
 // 10: changed eOrderCode storage type to unsigned char (was default-int)
 // 11: Removed some redudnant order result codes, and added nutrient loss information to given stats; 
 // 11.1: Added new emotes - does not break old version, so not updating version
+// 12: Exposed SetMoodText() function in DebugInterface struct; changes one-line player emote text
 //-----------------------------------------------------------------------------------------------
-constexpr int	COMMON_INTERFACE_VERSION_NUMBER		= 11;
+constexpr int	COMMON_INTERFACE_VERSION_NUMBER		= 12;
 
 
 //-----------------------------------------------------------------------------------------------
@@ -358,7 +359,7 @@ struct PlayerTurnOrders
 //------------------------------------------------------------------------------------------------
 // Information about the server and match provided when PreGameStartup() is called by the server.
 //
-typedef void (*EventFunc)( const char* line ); 
+typedef void (*EventFunc)( const char* line );
 typedef void (*RegisterEventFunc)( const char* eventName, EventFunc func );
 struct StartupInfo
 {
@@ -428,7 +429,8 @@ struct MatchResults
 // All drawing is clipped to world space, i.e. mins(-.5,-.5) to maxs(mapWidth-.5,mapWidth-.5).
 //-----------------------------------------------------------------------------------------------
 typedef void (*RequestPauseFunc)(); 
-typedef void (*LogTextFunc)( char const* format, ... ); 
+typedef void (*LogTextFunc)( char const* format, ... );
+typedef void (*SetMoodTextFunc)( char const* format, ... );
 typedef void (*DrawVertexArrayFunc)( int count, const VertexPC* vertices );
 typedef void (*DrawWorldTextFunc)( 
 	float posX, float posY,
@@ -442,7 +444,8 @@ struct DebugInterface
 {
 	RequestPauseFunc		RequestPause;			// Pause the simulation (can be ignored by game)
 	LogTextFunc				LogText;				// Print to dev console (and possibly log file)
-	
+	SetMoodTextFunc			SetMoodText;			// Call anytime to change "mood" text on player panel
+
 	DrawWorldTextFunc		QueueDrawWorldText;		// Draw (aligned) overlay text in world space
 	DrawVertexArrayFunc		QueueDrawVertexArray;	// Draw untextured geometry in world space
 	FlushQueuedDrawsFunc	FlushQueuedDraws;		// Call after queuing to commit and show draws

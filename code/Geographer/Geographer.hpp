@@ -4,6 +4,17 @@
 struct TileRecord;
 struct NodeRecord;
 
+enum eMapData
+{
+	UNKNOWN_MAP_DATA = -1,
+
+	MAP_TILE_TYPE,
+	MAP_FOOD,
+	MAP_LAST_UPDATED,
+	MAP_ANT_RESERVE,
+
+	NUM_MAP_DATA
+};
 
 class Geographer
 {
@@ -23,6 +34,10 @@ public:
 	static std::vector<IntVec2>		EightNeighbors( const IntVec2& coord );
 	static void						UpdateListOfFood(const IntVec2& coord);
 	static void						UpdateListOfFood();
+	static int						HowMuchFoodCanISee();
+	static float					GetHeatMapValueAt(const IntVec2& coord, eMapData map_data);
+	static void						EdgeDetection(std::vector<float>& out_card_dir, const IntVec2& coord, int depth, eMapData heat_map);
+
 	
 	//Alter Records
 	static void		SetMapDimensions( int width );
@@ -39,6 +54,8 @@ public:
 	static float	OctileDistance(const IntVec2& start, const IntVec2& end);
 	static float	EuclideanHeuristic(const IntVec2& start, const IntVec2& end);
 	static void		ResetPathingMap();
+	static void		GetCenteredSquareDis(std::vector<IntVec2>& out_coords, int depth, bool just_edge);
+	static int		GetCenteredSquareCount(int depth, bool just_edge);
 	
 	//debugging
 	static void DebugPrintCostMap(NodeRecord* map_records);
@@ -74,7 +91,7 @@ struct TileRecord
 {
 	eTileType	m_tileType = TILE_TYPE_UNSEEN;
 	bool		m_hasFood = false;
-	int			m_lastUpdated = INT_MAX;
+	int			m_lastUpdated = 0;
 	AgentID		m_goingToThisTile = UINT_MAX;
 };
 
