@@ -4,29 +4,29 @@
 // info collection
 int GiveCommonInterfaceVersion() {	return COMMON_INTERFACE_VERSION_NUMBER; }
 const char* GivePlayerName() {	return "jak_sin(Pi)"; }
-const char* GiveAuthorName() {	return "Lawrence(JAKE)"; }
+const char* GiveAuthorName() {	return "Lawrence Klinkert"; }
 
 
 // setup -- copy game rules over
 void PreGameStartup( const StartupInfo& info )
 {
-	g_thePlayer = new MainThread(); 
-	g_thePlayer->Startup( info ); 
+	MainThread* the_player = MainThread::GetInstance();
+	the_player->Startup( info );
 }
 
 
 // any clean up or reporting
 void PostGameShutdown( const MatchResults& results )
 {
-	g_thePlayer->Shutdown( results );
+	MainThread* the_player = MainThread::GetInstance();
+	the_player->Shutdown( results );
 
-	while(g_thePlayer->m_numActiveThreads != 0)
+	while(the_player->m_numActiveThreads != 0)
 	{
 		std::this_thread::yield();
 	}
-	
-	delete g_thePlayer;
-	g_thePlayer = nullptr;
+
+	MainThread::DeleteInstance();
 }
 
 
@@ -38,7 +38,8 @@ void PlayerThreadEntry( int yourThreadIdx )
 	// this Ai is "bad" - I'm only going to use one worker thread
 	if (yourThreadIdx == 0) 
 	{
-		g_thePlayer->ThreadEntry( yourThreadIdx ); 
+		MainThread* the_player = MainThread::GetInstance();
+		the_player->ThreadEntry( yourThreadIdx );
 	}
 }
 
@@ -46,12 +47,14 @@ void PlayerThreadEntry( int yourThreadIdx )
 // Turn -- copy stat, kick off work
 void ReceiveTurnState( const ArenaTurnStateForPlayer& state )
 {
-	g_thePlayer->ReceiveTurnState( state ); 
+	MainThread* the_player = MainThread::GetInstance();
+	the_player->ReceiveTurnState( state );
 }
 
 
 // return if orders was filled (this is a valid turn)
 bool TurnOrderRequest( int turnNumber, PlayerTurnOrders* ordersToFill )
 {
-	return g_thePlayer->TurnOrderRequest( ordersToFill ); 
+	MainThread* the_player = MainThread::GetInstance();
+	return the_player->TurnOrderRequest( ordersToFill );
 }

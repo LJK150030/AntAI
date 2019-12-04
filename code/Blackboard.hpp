@@ -3,6 +3,7 @@
 #include "MainThread.hpp"
 #include "Math/RandomNumberGenerator.hpp"
 #include <cstring>
+#include "Math/IntVec2.hpp"
 
 // Macro functions
 #define STATIC
@@ -26,26 +27,38 @@
 // Global type def
 typedef unsigned int uint;
 
-// Global variables that everyone can share
-extern RandomNumberGenerator	g_randomNumberGenerator;
-extern MainThread*				g_thePlayer;
+// Global Structs
+struct RepathPriority
+{
+	AgentID m_id = UINT_MAX;
+	float m_priority = FLT_MAX;
+};
 
+// Global variables that everyone can share
 extern MatchInfo				g_matchInfo;
 extern DebugInterface*			g_debugInterface;
 extern ArenaTurnStateForPlayer	g_turnState;
+extern RandomNumberGenerator	g_randomNumberGenerator;
+extern MainThread*				g_thePlayer;
 
-constexpr int MIN_NUM_WORKERS = 75;
+
+extern int g_currentNumScouts;
+extern int g_currentNumWorkers;
+extern int g_currentNumSoldier;
+extern int g_currentNumQueen;
+extern IntVec2 g_queenPos;
+
+
+constexpr int MIN_NUM_WORKERS = 100;
 constexpr int MIN_NUM_SOLDIERS = 1;
 constexpr int SPAWN_SOLDIERS_AFTER = 150;
-
 constexpr float POP_WORKER_TO_FOOD = 0.0017f;
 constexpr float POP_WORKER_SURPLUS = 0.0071f;
 constexpr int CONSERVE_WORKERS_AT = 150;
-
 constexpr int MAX_CONTAINER_SIZE = 65'536;
-constexpr int MAX_TREE_DEPTH = 50;
-constexpr int MAX_PATH = MAX_TREE_DEPTH*MAX_TREE_DEPTH + (MAX_TREE_DEPTH + 1)*(MAX_TREE_DEPTH+1);
-
+//constexpr int MAX_TREE_DEPTH = 50;
+//constexpr int MAX_PATH = MAX_TREE_DEPTH*MAX_TREE_DEPTH + (MAX_TREE_DEPTH + 1)*(MAX_TREE_DEPTH+1);
+constexpr int MAX_PATH = 32;
 
 enum JobCategory
 {
@@ -68,3 +81,4 @@ enum eQueueType
 
 	NUM_QUEUE_TYPES
 };
+

@@ -5,6 +5,7 @@
 #include <random>
 #include "Geographer/SearchGraph.hpp"
 #include "Math/MathUtils.hpp"
+#include "Architecture/ErrorWarningAssert.hpp"
 
 
 //--------------------------------------------------------------------------
@@ -86,6 +87,29 @@ STATIC bool Geographer::IsSafeTile( const IntVec2& coord )
 	return !(tile_type == TILE_TYPE_STONE);
 }
 
+bool Geographer::IsTileSurrounded(const IntVec2& coord)
+{
+	std::vector<IntVec2> neighboring_tiles = FourNeighbors(coord);
+	int num_stone_walls = 0;
+	
+	for(int tile_idx = 0; tile_idx < 4; ++tile_idx)
+	{
+		if(neighboring_tiles[tile_idx] == IntVec2::NEG_ONE)
+		{
+			continue;
+		}
+
+		short tile_serial = GetTileIndex(neighboring_tiles[tile_idx]);
+		
+		if (s_perceivedMap[tile_serial].m_tileType == TILE_TYPE_STONE)
+		{
+			++num_stone_walls;
+		}
+	}
+
+	return num_stone_walls >= 4;
+}
+
 
 STATIC std::vector<IntVec2> Geographer::FourNeighbors(const IntVec2& coord)
 {
@@ -102,7 +126,7 @@ STATIC std::vector<IntVec2> Geographer::FourNeighbors(const IntVec2& coord)
 		IntVec2 test_coord(coord.x + idx.x, coord.y + idx.y);
 		if(!IsValidCoord(test_coord)) 
 		{
-			result.emplace_back(IntVec2(-1, -1));
+			result.emplace_back(IntVec2::NEG_ONE);
 		}
 		else
 		{
@@ -166,7 +190,7 @@ STATIC void Geographer::UpdateListOfFood(const IntVec2& coord)
 		const short current_idx = priority_node.m_idx;
 		current_node = s_pathingMap[current_idx];
 
-		std::vector<IntVec2> connections = EightNeighbors(current_node.m_coord);
+		std::vector<IntVec2> connections = FourNeighbors(current_node.m_coord);
 		for(int con_idx = 0; con_idx < static_cast<int>(connections.size()); ++con_idx)
 		{
 			++nodes_searched;
@@ -214,25 +238,6 @@ STATIC void Geographer::UpdateListOfFood(const IntVec2& coord)
 	std::reverse(s_foodLoc.begin(),s_foodLoc.end());
 		
 	ResetPathingMap();
-}
-
-void Geographer::UpdateListOfFood()
-{
-	s_foodLoc.clear();
-	
-	for(int tile_idx = 0; tile_idx < s_mapTotalSize; ++tile_idx)
-	{
-		if(s_perceivedMap[tile_idx].m_tileType == TILE_TYPE_UNSEEN) continue;
-		if(!IsSafeTile(GetTileCoord(tile_idx))) continue;
-		if(s_perceivedMap[tile_idx].m_goingToThisTile != UINT_MAX) continue;
-		if(s_perceivedMap[tile_idx].m_hasFood)
-		{
-			s_foodLoc.push_back(tile_idx);
-		}
-	}
-
-	auto rng = std::default_random_engine {};
-	std::shuffle(std::begin(s_foodLoc), std::end(s_foodLoc), rng);
 }
 
 int Geographer::HowMuchFoodCanISee()
@@ -944,7 +949,7 @@ std::vector<eOrderCode> Geographer::PathfindAstar(const IntVec2& start, const In
 			new_node.m_parentIdx = GetTileIndex(current_node.m_coord);
 			new_node.m_actionTook = static_cast<eOrderCode>(con_idx + 1);
 			new_node.m_heuristic = ManhattanHeuristic(new_node.m_coord, end) +
-				0.019f * OctileDistance(new_node.m_coord, end);
+				0.03f * OctileDistance(new_node.m_coord, end);
 
 			float exhaust_penalty = 0.0f;
 			switch (s_perceivedMap[GetTileIndex(new_node.m_coord)].m_tileType)
@@ -953,10 +958,10 @@ std::vector<eOrderCode> Geographer::PathfindAstar(const IntVec2& start, const In
 				exhaust_penalty = 0.0f;
 				break;
 			case TILE_TYPE_STONE:
-				exhaust_penalty = 100.0f;
+				exhaust_penalty = 1000.0f;
 				break;
 			case TILE_TYPE_WATER:
-				exhaust_penalty = 100.0f;
+				exhaust_penalty = 2.0f;
 				break;
 			case TILE_TYPE_CORPSE_BRIDGE:
 				exhaust_penalty = 0.0f;

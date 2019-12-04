@@ -5,6 +5,7 @@ struct Vec2;
 //-----------------------------------------------------------------------------------------------
 struct IntVec2
 {
+	const static IntVec2 NEG_ONE;
 	const static IntVec2 ZERO;
 	const static IntVec2 ONE;
 

@@ -1,7 +1,5 @@
 #pragma once
-#include "Blackboard.hpp"
 
-TODO("This is over engineered. Use heap memeory since these are going to be big objecs")
 template <typename Item>
 class MinHeap
 {

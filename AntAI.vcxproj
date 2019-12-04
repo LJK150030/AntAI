@@ -140,16 +140,20 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="code\Architecture\AntPool.hpp" />
+    <ClInclude Include="code\Architecture\ErrorWarningAssert.hpp" />
     <ClInclude Include="code\Architecture\FifoIterator.hpp" />
     <ClInclude Include="code\Architecture\Heap.hpp" />
     <ClInclude Include="code\Architecture\Queue.hpp" />
     <ClInclude Include="code\Architecture\QueueIterator.hpp" />
+    <ClInclude Include="code\Architecture\StringUtils.hpp" />
     <ClInclude Include="code\Arena\ArenaPlayerInterface.hpp" />
     <ClInclude Include="code\Async\AbstractRequest.hpp" />
     <ClInclude Include="code\Async\Dispatcher.hpp" />
     <ClInclude Include="code\Async\Request.hpp" />
     <ClInclude Include="code\Async\Worker.hpp" />
     <ClInclude Include="code\Blackboard.hpp" />
+    <ClInclude Include="code\Character\AntUnit.hpp" />
     <ClInclude Include="code\GameRequest.hpp" />
     <ClInclude Include="code\Geographer\Geographer.hpp" />
     <ClInclude Include="code\Geographer\SearchGraph.hpp" />
@@ -161,14 +165,18 @@
     <ClInclude Include="code\Math\Vec2.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="code\Architecture\AntPool.cpp" />
+    <ClCompile Include="code\Architecture\ErrorWarningAssert.cpp" />
     <ClCompile Include="code\Architecture\FifoIterator.cpp" />
     <ClCompile Include="code\Architecture\Heap.cpp" />
     <ClCompile Include="code\Architecture\Queue.cpp" />
     <ClCompile Include="code\Architecture\QueueIterator.cpp" />
+    <ClCompile Include="code\Architecture\StringUtils.cpp" />
     <ClCompile Include="code\Async\Dispatcher.cpp" />
     <ClCompile Include="code\Async\Request.cpp" />
     <ClCompile Include="code\Async\Worker.cpp" />
     <ClCompile Include="code\Blackboard.cpp" />
+    <ClCompile Include="code\Character\AntUnit.cpp" />
     <ClCompile Include="code\dll\PlayerImpl.cpp" />
     <ClCompile Include="code\GameRequest.cpp" />
     <ClCompile Include="code\Geographer\Geographer.cpp" />

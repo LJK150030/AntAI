@@ -23,6 +23,9 @@
     <Filter Include="Geographer">
       <UniqueIdentifier>{c4666bab-1eca-4072-ab71-3108fc5695de}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Character">
+      <UniqueIdentifier>{dfb40050-f170-4c08-8cc7-e0685cee94ad}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="code\Arena\ArenaPlayerInterface.hpp">
@@ -82,6 +85,18 @@
     <ClInclude Include="code\Geographer\SearchGraph.hpp">
       <Filter>Geographer</Filter>
     </ClInclude>
+    <ClInclude Include="code\Character\AntUnit.hpp">
+      <Filter>Character</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Architecture\AntPool.hpp">
+      <Filter>Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Architecture\ErrorWarningAssert.hpp">
+      <Filter>Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="code\Architecture\StringUtils.hpp">
+      <Filter>Architecture</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="code\dll\PlayerImpl.cpp">
@@ -134,6 +149,18 @@
     </ClCompile>
     <ClCompile Include="code\Geographer\SearchGraph.cpp">
       <Filter>Geographer</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Character\AntUnit.cpp">
+      <Filter>Character</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Architecture\AntPool.cpp">
+      <Filter>Architecture</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Architecture\ErrorWarningAssert.cpp">
+      <Filter>Architecture</Filter>
+    </ClCompile>
+    <ClCompile Include="code\Architecture\StringUtils.cpp">
+      <Filter>Architecture</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

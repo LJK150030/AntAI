@@ -1,5 +1,6 @@
 #pragma once
 #include "Blackboard.hpp"
+#include "Math/IntVec2.hpp"
 
 struct TileRecord;
 struct NodeRecord;
@@ -30,10 +31,10 @@ public:
 	//Tile Queries
 	static bool						DoesCoordHaveFood(const IntVec2& coord );
 	static bool						IsSafeTile( const IntVec2& coord );
+	static bool						IsTileSurrounded(const IntVec2& coord);
 	static std::vector<IntVec2>		FourNeighbors( const IntVec2& coord );
 	static std::vector<IntVec2>		EightNeighbors( const IntVec2& coord );
 	static void						UpdateListOfFood(const IntVec2& coord);
-	static void						UpdateListOfFood();
 	static int						HowMuchFoodCanISee();
 	static float					GetHeatMapValueAt(const IntVec2& coord, eMapData map_data);
 	static void						EdgeDetection(std::vector<float>& out_card_dir, const IntVec2& coord, int depth, eMapData heat_map);

@@ -2,6 +2,7 @@
 #include "Blackboard.hpp"
 #include "Math/Vec2.hpp"
 
+const STATIC IntVec2 IntVec2::NEG_ONE(-1, -1);
 const STATIC IntVec2 IntVec2::ZERO(0, 0);
 const STATIC IntVec2 IntVec2::ONE(1, 1);
 
