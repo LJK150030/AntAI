@@ -1,6 +1,8 @@
 #include "Character/AntUnit.hpp"
 #include "Geographer/Geographer.hpp"
 #include "Blackboard.hpp"
+#include "Math/MathUtils.hpp"
+#include "Architecture/ErrorWarningAssert.hpp"
 
 //------------------------------------------------------------------------------------
 
@@ -17,7 +19,7 @@ void AntUnit::Init(AgentReport& report)
 //------------------------------------------------------------------------------------
 
 
-void AntUnit::ProcessTurn(AgentReport& report)
+void AntUnit::Decide(AgentReport& report)
 {
 	m_report = report;
 	m_currentCoord = IntVec2(m_report.tileX, m_report.tileY);
@@ -125,8 +127,12 @@ void AntUnit::UpdateWorker()
 		else
 		{
 			//we need to hall ass to the queen
-			std::vector<eOrderCode> pathing = Geographer::PathfindAstar(m_currentCoord, g_queenPos);
-			MainThread::GetInstance()->AddOrder(m_report.agentID, pathing.front());
+			m_goalCoord = g_queenPos;
+			float priority = 1.0f - (m_currentOrderIndex * MAX_PATH_INVERSE);
+			g_pathingRequests.Push(RepathPriority(m_report.agentID, priority));
+			
+			//std::vector<eOrderCode> pathing = Geographer::PathfindAstar(m_currentCoord, g_queenPos);
+			//MainThread::GetInstance()->AddOrder(m_report.agentID, pathing.front());
 		}
 	}
 	else 
@@ -138,14 +144,16 @@ void AntUnit::UpdateWorker()
 			//if there is no work
 			if(coord_to_go_to == IntVec2(-1, -1))
 			{
-				MoveRandom(m_report.agentID);
 				MainThread::GetInstance()->AddOrder(m_report.agentID, ORDER_EMOTE_CONFUSED );
 			}
 			else
 			{		
 				m_goalCoord = coord_to_go_to;
-				std::vector<eOrderCode> pathing = Geographer::PathfindAstar(m_currentCoord, coord_to_go_to);
-				MainThread::GetInstance()->AddOrder(m_report.agentID, pathing.front());
+				float priority = 1.0f - (m_currentOrderIndex * MAX_PATH_INVERSE);
+				g_pathingRequests.Push(RepathPriority(m_report.agentID, priority));
+
+				//std::vector<eOrderCode> pathing = Geographer::PathfindAstar(m_currentCoord, coord_to_go_to);
+				//MainThread::GetInstance()->AddOrder(m_report.agentID, pathing.front());
 			}
 		}
 		else // ant has work
@@ -162,20 +170,19 @@ void AntUnit::UpdateWorker()
 				}
 				// else the food has already been picked up
 				{
-// 					IntVec2 coord_to_go_to = Geographer::AddAntToFoodTile(report.agentID);
-// 					m_workerJobs[report.agentID] = Geographer::GetTileIndex(coord_to_go_to);
-// 					std::vector<eOrderCode> pathing = Geographer::PathfindAstar(ant_coord, coord_to_go_to);
-// 					AddOrder(report.agentID, pathing.front());
 					m_goalCoord = IntVec2::NEG_ONE;
-					MainThread::GetInstance()->AddOrder(m_report.agentID, ORDER_EMOTE_ANGRY );
-
+					//MainThread::GetInstance()->AddOrder(m_report.agentID, ORDER_EMOTE_ANGRY );
 				}
 			}
 			// not at our destination
 			else
 			{
-				std::vector<eOrderCode> pathing = Geographer::PathfindAstar(m_currentCoord, m_goalCoord);
-				MainThread::GetInstance()->AddOrder(m_report.agentID, pathing.front());
+				// m_goalCoord = coord_to_go_to;
+				float priority = 1.0f - (m_currentOrderIndex * MAX_PATH_INVERSE);
+				g_pathingRequests.Push(RepathPriority(m_report.agentID, priority));
+
+				//std::vector<eOrderCode> pathing = Geographer::PathfindAstar(m_currentCoord, m_goalCoord);
+				//MainThread::GetInstance()->AddOrder(m_report.agentID, pathing.front());
 			}
 		}
 
@@ -221,25 +228,48 @@ void AntUnit::UpdateQueen()
 //------------------------------------------------------------------------------------
 
 
-void AntUnit::MoveRandom(AgentID agent)
+void AntUnit::MoveRandom()
 {
 	const int offset = rand() % 4;
 	const eOrderCode order = static_cast<eOrderCode>(ORDER_MOVE_EAST + offset);
 
-	MainThread::GetInstance()->AddOrder(agent, order);
+	MainThread::GetInstance()->AddOrder(m_report.agentID, order);
 }
 
 
-void AntUnit::MoveGreedy(AgentID agent, const IntVec2& start, const IntVec2& goal)
+void AntUnit::MoveGreedy(const IntVec2& start, const IntVec2& goal)
 {
 	const eOrderCode order = Geographer::GreedyMovement(start, goal);
 
-	MainThread::GetInstance()->AddOrder(agent, order);
+	MainThread::GetInstance()->AddOrder(m_report.agentID, order);
+}
+
+void AntUnit::UpdatePath()
+{
+	m_currentOrderIndex = 0;
+	memcpy(&m_pathOrders, &DEFAULT_PATHING, sizeof(eOrderCode)*MAX_PATH );
+
+	std::vector<eOrderCode> pathing = Geographer::PathfindAstar(m_currentCoord, m_goalCoord);
+
+	int max_num = Min(pathing.size(), MAX_PATH);
+	
+	for(int idx = 0; idx < max_num; ++idx)
+	{
+		m_pathOrders[idx] = pathing[idx];
+	}	
+}
+
+void AntUnit::ContinuePath()
+{
+	ASSERT_OR_DIE(m_currentOrderIndex < MAX_PATH, "Reading outside of max path")
+	
+	MainThread::GetInstance()->AddOrder(m_report.agentID, m_pathOrders[m_currentOrderIndex]);
+	++m_currentOrderIndex;
 }
 
 bool AntUnit::InUse() const
 {
-	return m_isGarbage;
+	return !m_isGarbage;
 }
 
 

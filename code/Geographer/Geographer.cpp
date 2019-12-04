@@ -190,7 +190,7 @@ STATIC void Geographer::UpdateListOfFood(const IntVec2& coord)
 		const short current_idx = priority_node.m_idx;
 		current_node = s_pathingMap[current_idx];
 
-		std::vector<IntVec2> connections = FourNeighbors(current_node.m_coord);
+		std::vector<IntVec2> connections = EightNeighbors(current_node.m_coord);
 		for(int con_idx = 0; con_idx < static_cast<int>(connections.size()); ++con_idx)
 		{
 			++nodes_searched;

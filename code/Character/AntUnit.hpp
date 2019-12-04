@@ -12,7 +12,7 @@ public:
 	AntUnit();
 	~AntUnit();
 
-	void ProcessTurn(AgentReport& report);
+	void Decide(AgentReport& report);
 	
 
 	void UpdateScout();
@@ -22,9 +22,11 @@ public:
 
 	
 	// Helpers
-	void MoveRandom( AgentID agent );
-	void MoveGreedy( AgentID agent, const IntVec2& start, const IntVec2& goal );
-
+	void MoveRandom( );
+	void MoveGreedy( const IntVec2& start, const IntVec2& goal );
+	void UpdatePath();
+	void ContinuePath();
+	
 	// Obj Pool
 	void Init(AgentReport& report);
 	bool InUse() const;
@@ -36,7 +38,8 @@ private:
 	//helper functions
 	IntVec2			m_goalCoord = IntVec2::NEG_ONE;
 	eOrderCode		m_pathOrders[MAX_PATH] = { ORDER_HOLD };
-
+	int				m_currentOrderIndex = 0;
+	
 	// used for obj pooling
 	bool			m_isGarbage = true;
 };

@@ -2,8 +2,8 @@
 #include "Arena/ArenaPlayerInterface.hpp"
 #include "MainThread.hpp"
 #include "Math/RandomNumberGenerator.hpp"
-#include <cstring>
 #include "Math/IntVec2.hpp"
+#include "Architecture/Heap.hpp"
 
 // Macro functions
 #define STATIC
@@ -30,8 +30,35 @@ typedef unsigned int uint;
 // Global Structs
 struct RepathPriority
 {
+public:
 	AgentID m_id = UINT_MAX;
 	float m_priority = FLT_MAX;
+
+public:
+	RepathPriority() = default;
+	RepathPriority(const AgentID id, const float pri) :
+		m_id(id), m_priority(pri){}
+	~RepathPriority() = default;
+
+	inline friend bool operator<(const RepathPriority& lhs, const RepathPriority& rhs)
+	{
+		return lhs.m_priority < rhs.m_priority;
+	}
+
+	inline friend bool operator>(const RepathPriority& lhs, const RepathPriority& rhs)
+	{
+		return lhs.m_priority > rhs.m_priority;
+	}
+
+	inline friend bool operator==(const RepathPriority& lhs, const RepathPriority& rhs)
+	{
+		return lhs.m_id == rhs.m_id;
+	}
+
+	inline friend bool operator!=(const RepathPriority& lhs, const RepathPriority& rhs)
+	{
+		return lhs.m_id != rhs.m_id;
+	}
 };
 
 // Global variables that everyone can share
@@ -46,7 +73,9 @@ extern int g_currentNumScouts;
 extern int g_currentNumWorkers;
 extern int g_currentNumSoldier;
 extern int g_currentNumQueen;
+extern int g_numRepaths;
 extern IntVec2 g_queenPos;
+extern MinHeap<RepathPriority> g_pathingRequests;
 
 
 constexpr int MIN_NUM_WORKERS = 100;
@@ -59,6 +88,9 @@ constexpr int MAX_CONTAINER_SIZE = 65'536;
 //constexpr int MAX_TREE_DEPTH = 50;
 //constexpr int MAX_PATH = MAX_TREE_DEPTH*MAX_TREE_DEPTH + (MAX_TREE_DEPTH + 1)*(MAX_TREE_DEPTH+1);
 constexpr int MAX_PATH = 32;
+constexpr float MAX_PATH_INVERSE = 1.0f / MAX_PATH;
+constexpr eOrderCode DEFAULT_PATHING[MAX_PATH] = { ORDER_HOLD };
+constexpr int MAX_REPATHING = 8;
 
 enum JobCategory
 {
