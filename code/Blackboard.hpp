@@ -78,9 +78,10 @@ extern IntVec2 g_queenPos;
 extern MinHeap<RepathPriority> g_pathingRequests;
 
 
-constexpr int MIN_NUM_WORKERS = 100;
+constexpr int MIN_NUM_WORKERS = 70;
 constexpr int MIN_NUM_SOLDIERS = 1;
-constexpr int SPAWN_SOLDIERS_AFTER = 150;
+constexpr int MAX_NUM_SOLDIERS = 10;
+constexpr int SPAWN_SOLDIERS_AFTER = 0;
 constexpr float POP_WORKER_TO_FOOD = 0.0017f;
 constexpr float POP_WORKER_SURPLUS = 0.0071f;
 constexpr int CONSERVE_WORKERS_AT = 150;

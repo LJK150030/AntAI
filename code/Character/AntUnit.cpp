@@ -196,9 +196,17 @@ void AntUnit::UpdateSoldier()
 		++g_currentNumSoldier;
 	}
 
-	if(g_turnState.turnNumber < SPAWN_SOLDIERS_AFTER)
+	if(Geographer::HowManyEnemiesCanISee() > 0)
 	{
-		MainThread::GetInstance()->AddOrder(m_report.agentID, ORDER_SUICIDE );
+		IntVec2 enemy_coord = Geographer::GetNextEnemyCoord();
+
+		if(enemy_coord != IntVec2::NEG_ONE)
+		{
+			float priority = 0.1f;
+			m_goalCoord = enemy_coord;
+			g_pathingRequests.Push(RepathPriority(m_report.agentID, priority));
+		}
+
 	}
 }
 
@@ -213,7 +221,7 @@ void AntUnit::UpdateQueen()
 	Geographer::UpdateListOfFood(g_queenPos);
 
 
-	if(g_currentNumSoldier < MIN_NUM_SOLDIERS)
+	if(g_currentNumSoldier < g_turnState.numObservedAgents && g_currentNumSoldier < MAX_NUM_SOLDIERS)
 	{
 		MainThread::GetInstance()->AddOrder(m_report.agentID, ORDER_BIRTH_SOLDIER );
 	}
@@ -248,8 +256,12 @@ void AntUnit::UpdatePath()
 {
 	m_currentOrderIndex = 0;
 	memcpy(&m_pathOrders, &DEFAULT_PATHING, sizeof(eOrderCode)*MAX_PATH );
-
-	std::vector<eOrderCode> pathing = Geographer::PathfindAstar(m_currentCoord, m_goalCoord);
+	
+	std::vector<eOrderCode> pathing;
+	if(m_report.type == AGENT_TYPE_WORKER)
+		pathing = Geographer::PathfindAstar(m_currentCoord, m_goalCoord, true);
+	else
+		pathing = Geographer::PathfindAstar(m_currentCoord, m_goalCoord, false);
 
 	int max_num = Min(pathing.size(), MAX_PATH);
 	

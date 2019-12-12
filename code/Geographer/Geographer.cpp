@@ -18,6 +18,7 @@ STATIC int					Geographer::s_mapTotalSize = 0;
 STATIC TileRecord			Geographer::s_perceivedMap[MAX_ARENA_TILES];
 STATIC NodeRecord			Geographer::s_pathingMap[MAX_ARENA_TILES];
 STATIC std::vector<short>	Geographer::s_foodLoc = std::vector<short>();
+STATIC std::vector<short>	Geographer::s_enemyLoc = std::vector<short>();
 
 STATIC const NodeRecord		Geographer::DEFAULT_PATHING_MAP[MAX_ARENA_TILES];
 
@@ -245,6 +246,23 @@ int Geographer::HowMuchFoodCanISee()
 	return s_foodLoc.size();
 }
 
+int Geographer::HowManyEnemiesCanISee()
+{
+	return s_enemyLoc.size();
+}
+
+IntVec2 Geographer::GetNextEnemyCoord()
+{
+	if(!s_enemyLoc.empty())
+	{
+		IntVec2 enemy_coord(GetTileCoord(s_enemyLoc.back()));
+		s_enemyLoc.pop_back();
+		return enemy_coord;
+	}
+
+	return IntVec2::NEG_ONE;
+}
+
 float Geographer::GetHeatMapValueAt(const IntVec2& coord, eMapData map_data)
 {
 	short coord_idx = GetTileIndex(coord);
@@ -381,6 +399,18 @@ STATIC void Geographer::UpdatePerception()
 		s_perceivedMap[tile_idx].m_tileType = g_turnState.observedTiles[tile_idx];
 		s_perceivedMap[tile_idx].m_hasFood = g_turnState.tilesThatHaveFood[tile_idx];
 		s_perceivedMap[tile_idx].m_lastUpdated = g_turnState.turnNumber;
+	}
+
+	s_enemyLoc.clear();
+	if(g_turnState.numObservedAgents > 0)
+	{
+		for(int enemy_num = 0; enemy_num < g_turnState.numObservedAgents; ++enemy_num)
+		{
+			ObservedAgent enemy = g_turnState.observedAgents[enemy_num];
+			if (enemy.type == AGENT_TYPE_SCOUT) continue;
+			IntVec2 enemy_coord(enemy.tileX, enemy.tileY);
+			s_enemyLoc.push_back(GetTileIndex(enemy_coord));
+		}
 	}
 }
 
@@ -907,7 +937,7 @@ STATIC std::vector<eOrderCode> Geographer::PathfindDijkstra( const IntVec2& star
 }
 
 //I don't like copy and past, however, I don't believe I will ever use Dijkstra again
-std::vector<eOrderCode> Geographer::PathfindAstar(const IntVec2& start, const IntVec2& end)
+std::vector<eOrderCode> Geographer::PathfindAstar(const IntVec2& start, const IntVec2& end, bool for_worker)
 {
 	std::vector<eOrderCode> order_list;
 	if(start == end) //redundent check
@@ -917,7 +947,9 @@ std::vector<eOrderCode> Geographer::PathfindAstar(const IntVec2& start, const In
 	}
 
 	const short start_idx = GetTileIndex(start);
-
+	int max_expansions = s_mapDimensions * 2;
+	int num_expansion = 0;
+	
 	//Setup root node
 	s_pathingMap[start_idx].m_coord = start;
 	s_pathingMap[start_idx].m_parentIdx = -1;
@@ -936,7 +968,8 @@ std::vector<eOrderCode> Geographer::PathfindAstar(const IntVec2& start, const In
 		const short current_idx = priority_node.m_idx;
 		current_node = s_pathingMap[current_idx];
 
-		if((current_node.m_coord == end))	break;
+		++num_expansion;
+		if((current_node.m_coord == end) || num_expansion == max_expansions)	break;
 
 		std::vector<IntVec2> connections = FourNeighbors(current_node.m_coord);
 		for(int con_idx = 0; con_idx < static_cast<int>(connections.size()); ++con_idx)
@@ -961,13 +994,19 @@ std::vector<eOrderCode> Geographer::PathfindAstar(const IntVec2& start, const In
 				exhaust_penalty = 1000.0f;
 				break;
 			case TILE_TYPE_WATER:
-				exhaust_penalty = 2.0f;
+				if (for_worker)
+					exhaust_penalty = 2.0f;
+				else
+					exhaust_penalty = 1000.0f;
 				break;
 			case TILE_TYPE_CORPSE_BRIDGE:
 				exhaust_penalty = 0.0f;
 				break;
 			case TILE_TYPE_DIRT:
-				exhaust_penalty = 1.0f;
+				if (for_worker)
+					exhaust_penalty = 1.0f;
+				else
+					exhaust_penalty = 1000.0f;
 			break;
 			}
 			

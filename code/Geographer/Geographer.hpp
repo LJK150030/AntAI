@@ -36,6 +36,8 @@ public:
 	static std::vector<IntVec2>		EightNeighbors( const IntVec2& coord );
 	static void						UpdateListOfFood(const IntVec2& coord);
 	static int						HowMuchFoodCanISee();
+	static int						HowManyEnemiesCanISee();
+	static IntVec2					GetNextEnemyCoord();
 	static float					GetHeatMapValueAt(const IntVec2& coord, eMapData map_data);
 	static void						EdgeDetection(std::vector<float>& out_card_dir, const IntVec2& coord, int depth, eMapData heat_map);
 
@@ -69,7 +71,7 @@ public:
 	//Pathing jobs
 	static eOrderCode GreedyMovement( const IntVec2& start, const IntVec2& end );
 	static std::vector<eOrderCode> PathfindDijkstra( const IntVec2& start, const IntVec2& end );
-	static std::vector<eOrderCode> PathfindAstar( const IntVec2& start, const IntVec2& end );
+	static std::vector<eOrderCode> PathfindAstar( const IntVec2& start, const IntVec2& end, bool for_worker);
 
 private:
 	Geographer();
@@ -84,6 +86,7 @@ private:
 	const static NodeRecord DEFAULT_PATHING_MAP[MAX_ARENA_TILES];
 
 	static std::vector<short> s_foodLoc;
+	static std::vector<short> s_enemyLoc;
 };
 
 //Structure to relative information together for one tile
